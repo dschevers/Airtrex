@@ -7,15 +7,10 @@ const AuthWrapper = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Check if user is already authenticated
-    const auth = localStorage.getItem('airtrex-auth');
-    const expiry = localStorage.getItem('airtrex-auth-expiry');
-    
-    // Check if authentication is valid and not expired
-    if (auth === 'true' && expiry && parseInt(expiry) > Date.now()) {
-      setIsAuthenticated(true);
-    }
-    
+    // Check if there's a session cookie
+    // The middleware will handle actual validation
+    const hasAuthCookie = document.cookie.includes('airtrex-auth-token=');
+    setIsAuthenticated(hasAuthCookie);
     setIsLoading(false);
   }, []);
   
@@ -23,10 +18,21 @@ const AuthWrapper = ({ children }) => {
     setIsAuthenticated(true);
   };
   
-  const handleLogout = () => {
-    localStorage.removeItem('airtrex-auth');
-    localStorage.removeItem('airtrex-auth-expiry');
-    setIsAuthenticated(false);
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Redirect to login page
+      setIsAuthenticated(false);
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
   
   if (isLoading) {

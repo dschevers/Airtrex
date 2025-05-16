@@ -1,15 +1,12 @@
-// app/page.js - Main landing page for all forms
 "use client";
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import Image from 'next/image';
 
 export default function LandingPage() {
   const router = useRouter();
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
-  // Define your forms here - first one links to your existing form
+  // Define your forms here
   const forms = [
     {
       id: 'order-request',
@@ -17,7 +14,7 @@ export default function LandingPage() {
       description: 'Submit requests for parts and materials',
       icon: '📦',
       color: '#0033cc', // Airtrex blue
-      path: '/parts-request', // This should match your route for the existing form
+      path: '/parts-request',
       status: 'active'
     },
     {
@@ -40,23 +37,55 @@ export default function LandingPage() {
     }
   ];
 
-  const handleCardClick = (form:any) => {
-    if (form.status === 'active') {
-      router.push(form.path);
+  const handleCardClick = (path: string, isActive: boolean) => {
+    if (isActive) {
+      router.push(path);
     }
   };
 
   // Logo component using the image file
   const AirtrexLogo = () => (
-    <img 
+    <Image 
       src="/images/airtrex-logo.png" 
       alt="Airtrex Logo" 
-      className="w-48 h-auto mb-6" 
+      width={192}
+      height={48}
+      className="h-auto mb-6" 
     />
   );
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      <style jsx global>{`
+        /* Define our global animation CSS */
+        .card-container {
+          /* Add will-change to optimize animation performance */
+          will-change: box-shadow, background-color, border-color;
+          /* Set a fixed height to prevent layout shifts */
+          height: 100%;
+          /* Add a very subtle transition for box-shadow */
+          transition: box-shadow 0.3s ease, background-color 0.3s ease;
+          /* Add a small delay to prevent flickering on hover boundaries */
+          transition-delay: 20ms;
+        }
+        
+        /* Apply hover styles only to active cards */
+        .card-container.active:hover {
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          background-color: rgba(249, 250, 251, 1);
+        }
+        
+        /* Arrow animation for active cards */
+        .get-started-arrow {
+          transition: transform 0.3s ease;
+          transition-delay: 20ms;
+        }
+        
+        .card-container.active:hover .get-started-arrow {
+          transform: translateX(4px);
+        }
+      `}</style>
+
       <div className="w-full max-w-4xl bg-white rounded-lg shadow-lg p-6 sm:p-8 border-2" style={{ borderColor: '#0033cc' }}>
         <div className="text-center mb-10">
           <AirtrexLogo />
@@ -70,18 +99,14 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {forms.map((form) => (
-            <div
-              key={form.id}
-              className={`bg-white border-2 rounded-lg p-6 transition-all duration-300 transform ${
-                form.status === 'active' ? 'cursor-pointer hover:shadow-xl hover:-translate-y-1' : 'opacity-70'
-              }`}
-              style={{ 
-                borderColor: form.color,
-                boxShadow: hoveredCard === form.id && form.status === 'active' ? `0 10px 15px -3px ${form.color}30` : 'none'
-              }}
-              onClick={() => handleCardClick(form)}
-              onMouseEnter={() => setHoveredCard(form.id)}
-              onMouseLeave={() => setHoveredCard(null)}
+            <div 
+              key={form.id} 
+              className={`
+                card-container bg-white rounded-lg border-2 p-6
+                ${form.status === 'active' ? 'active cursor-pointer' : 'opacity-70'}
+              `}
+              style={{ borderColor: form.color }}
+              onClick={() => handleCardClick(form.path, form.status === 'active')}
             >
               <div className="flex items-center mb-4">
                 <div
@@ -96,11 +121,11 @@ export default function LandingPage() {
               
               {form.status === 'active' ? (
                 <div 
-                  className="inline-flex items-center text-sm font-medium transition-colors duration-300"
+                  className="inline-flex items-center text-sm font-medium"
                   style={{ color: form.color }}
                 >
                   Get Started
-                  <svg className="ml-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="ml-2 w-4 h-4 get-started-arrow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
                 </div>

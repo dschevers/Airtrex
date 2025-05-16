@@ -1,13 +1,19 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const LoginScreen = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [csrfToken, setCsrfToken] = useState('');
   
-  // Company-specific styling
-  const airtrexBlue = "#0033cc";
+  // Fetch CSRF token on component mount
+  useEffect(() => {
+    fetch('/api/auth/csrf')
+      .then(res => res.json())
+      .then(data => setCsrfToken(data.csrfToken))
+      .catch(err => console.error('Failed to fetch CSRF token:', err));
+  }, []);
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,54 +21,41 @@ const LoginScreen = ({ onLogin }) => {
     setError('');
     
     try {
-      // In production - call a secure API endpoint to validate
       const response = await fetch('/api/auth/validate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
         },
         body: JSON.stringify({ password }),
       });
       
+      const data = await response.json();
+      
       if (response.ok) {
-        // Authentication successful
-        const result = await response.json();
-        
-        // Store authentication state
-        localStorage.setItem('airtrex-auth', 'true');
-        // Set expiry time (8 hours from now)
-        const expiry = Date.now() + (8 * 60 * 60 * 1000);
-        localStorage.setItem('airtrex-auth-expiry', expiry.toString());
-        
         // Call the login callback
         onLogin();
       } else {
-        // Authentication failed
-        setError('Incorrect password. Please try again.');
+        setError(data.error || 'Authentication failed. Please try again.');
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('An error occurred. Please try again later.');
       console.error('Login error:', err);
     }
     
     setIsLoading(false);
   };
   
-  // Logo component
-  const AirtrexLogo = () => (
-    <img 
-      src="/images/airtrex-logo.png" 
-      alt="Airtrex Logo" 
-      className="w-40 h-auto mx-auto mb-4" 
-    />
-  );
-  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-lg border-2" style={{ borderColor: airtrexBlue }}>
+      <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-lg border-2" style={{ borderColor: '#0033cc' }}>
         <div className="text-center mb-6">
-          <AirtrexLogo />
-          <h1 className="text-2xl font-bold" style={{ color: airtrexBlue }}>
+          <img 
+            src="/images/airtrex-logo.png" 
+            alt="Airtrex Logo" 
+            className="w-40 h-auto mx-auto mb-4" 
+          />
+          <h1 className="text-2xl font-bold" style={{ color: '#0033cc' }}>
             Airtrex Forms Portal
           </h1>
           <p className="text-gray-600 mt-2">
@@ -93,9 +86,9 @@ const LoginScreen = ({ onLogin }) => {
           
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || !csrfToken}
             className="w-full py-2 px-4 text-white font-medium rounded-md transition duration-150"
-            style={{ backgroundColor: isLoading ? '#ccc' : airtrexBlue }}
+            style={{ backgroundColor: isLoading ? '#ccc' : '#0033cc' }}
           >
             {isLoading ? 'Verifying...' : 'Log In'}
           </button>

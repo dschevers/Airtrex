@@ -139,7 +139,16 @@ export default function AirtrexOrderForm() {
     }
   }, [formData.lineItems, isFormUnlocked]);
 
-  const handleChange = (e, index = null) => {
+
+
+
+
+
+
+
+
+
+const handleChange = (e, index = null) => {
     if (index !== null) {
       // Handle line item changes
       const newLineItems = [...formData.lineItems];
@@ -239,93 +248,136 @@ export default function AirtrexOrderForm() {
     setShowConfirmSubmit(true);
   };
 
-const confirmSubmit = async () => {
-  setShowConfirmSubmit(false);
-  
-  if (!validateForm()) {
-    alert("Please fix the errors in the form before submitting.");
-    return;
-  }
-  
-  setIsSubmitting(true);
-  
-  try {
-    // Format the data for your API as it expects
-    const submissionData = {
-      workOrder: formData.workOrder,
-      requesterName: formData.requesterName,
-      
-      // Only include non-empty line items with all required fields
-      lineItems: formData.lineItems
-        .filter(item => 
-          item.description && 
-          item.partNumber && 
-          item.locationID && 
-          item.quantity && 
-          item.unitID
-        )
-        .map(item => {
-          // Find location and unit text values by ID
-          const location = dropdownOptions.locations.find(
-            loc => loc.LocationID.toString() === item.locationID.toString()
-          );
-          const unit = dropdownOptions.units.find(
-            u => u.UnitID.toString() === item.unitID.toString()
-          );
-          
-          // Ensure quantity is a number
-          let quantity = parseInt(item.quantity);
-          if (isNaN(quantity) || quantity <= 0) {
-            quantity = 1; // Default to 1 if quantity is invalid
-          }
-          
-          // Return a clean object with sanitized inputs
-          return {
-            description: sanitizeInput(item.description),
-            partNumber: sanitizeInput(item.partNumber),
-            notes: sanitizeInput(item.notes || ''),
-            requiredByDate: item.requiredByDate || null,
-            location: location ? location.Location : '', // Send location text
-            quantity: quantity, // Ensure valid quantity
-            unitOfMeasure: unit ? unit.UnitOfMeasure : '' // Send UnitOfMeasure text
-          };
-        })
-    };
+  const confirmSubmit = async () => {
+    setShowConfirmSubmit(false);
     
-    // Log the submission data for debugging
-    console.log("Submitting data:", JSON.stringify(submissionData, null, 2));
-    
-    // Submit the order
-    const response = await fetch('/api/orders', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(submissionData)
-    });
-    
-    if (!response.ok) {
-      // For non-200 responses, try to read the error
-      const errorText = await response.text();
-      console.error("Error response:", errorText);
-      
-      try {
-        // Try to parse as JSON, but don't fail if it's not JSON
-        const errorJson = JSON.parse(errorText);
-        throw new Error(errorJson.error || 'Failed to submit order');
-      } catch (parseError) {
-        // If JSON parsing fails, use the raw error text
-        throw new Error(`Error: ${response.status} ${response.statusText}. ${errorText}`);
-      }
+    if (!validateForm()) {
+      alert("Please fix the errors in the form before submitting.");
+      return;
     }
     
-    // If we got here, the response was OK
-    const result = await response.json();
+    setIsSubmitting(true);
     
-    setIsSubmitting(false);
-    setSubmitSuccess(true);
+    try {
+      // Format the data for your API as it expects
+      const submissionData = {
+        workOrder: formData.workOrder,
+        requesterName: formData.requesterName,
+        
+        // Only include non-empty line items with all required fields
+        lineItems: formData.lineItems
+          .filter(item => 
+            item.description && 
+            item.partNumber && 
+            item.locationID && 
+            item.quantity && 
+            item.unitID
+          )
+          .map(item => {
+            // Find location and unit text values by ID
+            const location = dropdownOptions.locations.find(
+              loc => loc.LocationID.toString() === item.locationID.toString()
+            );
+            const unit = dropdownOptions.units.find(
+              u => u.UnitID.toString() === item.unitID.toString()
+            );
+            
+            // Ensure quantity is a number
+            let quantity = parseInt(item.quantity);
+            if (isNaN(quantity) || quantity <= 0) {
+              quantity = 1; // Default to 1 if quantity is invalid
+            }
+            
+            // Return a clean object with sanitized inputs
+            return {
+              description: sanitizeInput(item.description),
+              partNumber: sanitizeInput(item.partNumber),
+              notes: sanitizeInput(item.notes || ''),
+              requiredByDate: item.requiredByDate || null,
+              location: location ? location.Location : '', // Send location text
+              quantity: quantity, // Ensure valid quantity
+              unitOfMeasure: unit ? unit.UnitOfMeasure : '' // Send UnitOfMeasure text
+            };
+          })
+      };
+      
+      // Log the submission data for debugging
+      console.log("Submitting data:", JSON.stringify(submissionData, null, 2));
+      
+      // Submit the order
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(submissionData)
+      });
+      
+      if (!response.ok) {
+        // For non-200 responses, try to read the error
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        
+        try {
+          // Try to parse as JSON, but don't fail if it's not JSON
+          const errorJson = JSON.parse(errorText);
+          throw new Error(errorJson.error || 'Failed to submit order');
+        } catch (parseError) {
+          // If JSON parsing fails, use the raw error text
+          throw new Error(`Error: ${response.status} ${response.statusText}. ${errorText}`);
+        }
+      }
+      
+      // If we got here, the response was OK
+      const result = await response.json();
+      
+      setIsSubmitting(false);
+      setSubmitSuccess(true);
+      
+      // Reset form after success
+      setFormData({
+        workOrder: '',
+        requesterName: '',
+        lineItems: [
+          {
+            description: '',
+            partNumber: '',
+            notes: '',
+            requiredByDate: '',
+            locationID: '',
+            quantity: '',
+            unitID: ''
+          }
+        ]
+      });
+      setActiveRows(1);
+      setFormErrors({});
+      
+    } catch (error) {
+      setIsSubmitting(false);
+      alert('Error submitting order: ' + error.message);
+    }
+  };
+
+  const initiateCancel = () => {
+    // Only show confirmation if there's data in the form
+    const hasData = formData.workOrder || formData.requesterName || 
+      formData.lineItems.some(item => 
+        item.description || item.partNumber || item.notes || 
+        item.requiredByDate || item.locationID || item.quantity || item.unitID
+      );
     
-    // Reset form after success
+    if (hasData) {
+      setShowConfirmCancel(true);
+    } else {
+      // If no data, just cancel without confirmation
+      confirmCancel();
+    }
+  };
+
+  const confirmCancel = () => {
+    setShowConfirmCancel(false);
+    // Reset form to initial state
     setFormData({
       workOrder: '',
       requesterName: '',
@@ -343,50 +395,7 @@ const confirmSubmit = async () => {
     });
     setActiveRows(1);
     setFormErrors({});
-    
-  } catch (error) {
-    setIsSubmitting(false);
-    alert('Error submitting order: ' + error.message);
-  }
-};
-
-  const initiateCancel = () => {
-  // Only show confirmation if there's data in the form
-  const hasData = formData.workOrder || formData.requesterName || 
-    formData.lineItems.some(item => 
-      item.description || item.partNumber || item.notes || 
-      item.requiredByDate || item.locationID || item.quantity || item.unitID
-    );
-  
-  if (hasData) {
-    setShowConfirmCancel(true);
-  } else {
-    // If no data, just cancel without confirmation
-    confirmCancel();
-  }
-};
-
-const confirmCancel = () => {
-  setShowConfirmCancel(false);
-  // Reset form to initial state
-  setFormData({
-    workOrder: '',
-    requesterName: '',
-    lineItems: [
-      {
-        description: '',
-        partNumber: '',
-        notes: '',
-        requiredByDate: '',
-        locationID: '',
-        quantity: '',
-        unitID: ''
-      }
-    ]
-  });
-  setActiveRows(1);
-  setFormErrors({});
-};
+  };
 
   const getCurrentDate = () => {
     const today = new Date();
@@ -404,6 +413,43 @@ const confirmCancel = () => {
 
 return (
   <div className="w-full max-w-4xl mx-auto p-3 sm:p-6 bg-white rounded-lg shadow-lg border-2" style={{ borderColor: airtrexBlue }}>
+    {/* Add the button animations CSS */}
+    <style jsx global>{`
+      /* Button animation */
+      .airtrex-button {
+        background-color: ${airtrexBlue};
+        color: white;
+        transition: background-color 0.3s ease, transform 0.1s ease;
+      }
+      
+      .airtrex-button:hover {
+        background-color: ${airtrexGreen};
+      }
+      
+      .airtrex-button:active {
+        transform: scale(0.98);
+      }
+      
+      /* Add disable state style */
+      .airtrex-button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+      
+      /* Make the cancel button also have an animation */
+      .airtrex-cancel-button {
+        transition: background-color 0.3s ease, transform 0.1s ease;
+      }
+      
+      .airtrex-cancel-button:hover {
+        background-color: #f3f4f6;
+      }
+      
+      .airtrex-cancel-button:active {
+        transform: scale(0.98);
+      }
+    `}</style>
+
     <div className="mb-4 text-center">
       <AirtrexLogo />
       <h1 className="text-xl sm:text-2xl font-bold text-center mb-4 sm:mb-6" style={{ color: airtrexBlue }}>
@@ -417,7 +463,7 @@ return (
         <span className="block sm:inline"> Your order request has been submitted successfully.</span>
         <button 
           onClick={() => setSubmitSuccess(false)} 
-          className="px-4 py-2 mt-3 bg-green-500 text-white rounded hover:bg-green-600"
+          className="px-4 py-2 mt-3 text-white rounded airtrex-button"
         >
           Create Another Request
         </button>
@@ -492,13 +538,13 @@ return (
         {/* Only show submit button and line items if form is unlocked */}
         {isFormUnlocked && (
           <>
-            {/* Cancel and Submit buttons at top */}
+            {/* Cancel and Submit buttons at top - UPDATED WITH ANIMATION CLASSES */}
             <div className="mt-4 flex space-x-4 mb-6">
               {/* Cancel Button */}
               <button 
                 onClick={initiateCancel} 
                 disabled={isSubmitting}
-                className="w-1/2 text-gray-800 font-medium py-2 px-4 rounded-md border border-gray-300 hover:bg-gray-100 transition duration-150 text-sm sm:text-base"
+                className="w-1/2 text-gray-800 font-medium py-2 px-4 rounded-md border border-gray-300 text-sm sm:text-base airtrex-cancel-button"
               >
                 Cancel
               </button>
@@ -506,13 +552,11 @@ return (
               <button 
                 onClick={initiateSubmit} 
                 disabled={isSubmitting}
-                className="w-1/2 text-white font-medium py-2 px-4 rounded-md transition duration-150 text-sm sm:text-base"
-                style={{ backgroundColor: isSubmitting ? '#ccc' : airtrexBlue }}
+                className="w-1/2 text-white font-medium py-2 px-4 rounded-md text-sm sm:text-base airtrex-button"
               >
                 {isSubmitting ? 'Processing...' : 'Submit'}
               </button>
             </div>
-            
             {/* Line items - each item becomes a section */}
             {formData.lineItems.map((item, index) => {
               // Check if this item has any data entered
@@ -689,13 +733,13 @@ return (
               );
             })}
             
-            {/* Cancel and Submit buttons at bottom */}
+            {/* Cancel and Submit buttons at bottom - UPDATED WITH ANIMATION CLASSES */}
             <div className="mt-4 flex space-x-4">
               {/* Cancel Button */}
               <button 
                 onClick={initiateCancel}
                 disabled={isSubmitting}
-                className="w-1/2 text-gray-800 font-medium py-2 px-4 rounded-md border border-gray-300 hover:bg-gray-100 transition duration-150 text-sm sm:text-base"
+                className="w-1/2 text-gray-800 font-medium py-2 px-4 rounded-md border border-gray-300 text-sm sm:text-base airtrex-cancel-button"
               >
                 Cancel
               </button>
@@ -703,8 +747,7 @@ return (
               <button 
                 onClick={initiateSubmit}
                 disabled={isSubmitting}
-                className="w-1/2 text-white font-medium py-2 px-4 rounded-md transition duration-150 text-sm sm:text-base"
-                style={{ backgroundColor: isSubmitting ? '#ccc' : airtrexBlue }}
+                className="w-1/2 text-white font-medium py-2 px-4 rounded-md text-sm sm:text-base airtrex-button"
               >
                 {isSubmitting ? 'Processing...' : 'Submit'}
               </button>
@@ -723,14 +766,13 @@ return (
           <div className="flex justify-end space-x-3">
             <button
               onClick={() => setShowConfirmSubmit(false)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 airtrex-cancel-button"
             >
               Cancel
             </button>
             <button
               onClick={confirmSubmit}
-              className="px-4 py-2 rounded-md text-white"
-              style={{ backgroundColor: airtrexBlue }}
+              className="px-4 py-2 rounded-md text-white airtrex-button"
             >
               Submit
             </button>
@@ -747,13 +789,14 @@ return (
           <div className="flex justify-end space-x-3">
             <button
               onClick={() => setShowConfirmCancel(false)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 airtrex-cancel-button"
             >
               No, Keep Editing
             </button>
             <button
               onClick={confirmCancel}
-              className="px-4 py-2 bg-red-500 rounded-md text-white hover:bg-red-600"
+              className="px-4 py-2 bg-red-500 rounded-md text-white hover:bg-red-600 airtrex-button"
+              style={{ backgroundColor: '#cc3300', borderColor: '#cc3300' }}
             >
               Yes, Cancel Form
             </button>
