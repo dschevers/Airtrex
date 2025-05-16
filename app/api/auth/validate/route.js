@@ -25,7 +25,7 @@ export async function POST(request) {
     
     const currentTime = new Date().getTime();
     let attemptCount = 0;
-    let isLocked = false;
+    //let isLocked = false;//
     
     if (lockoutCheck.recordset.length > 0) {
       const record = lockoutCheck.recordset[0];

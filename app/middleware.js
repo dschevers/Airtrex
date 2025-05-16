@@ -39,6 +39,7 @@ export async function middleware(request) {
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
     console.log(`[${new Date().toISOString()}] Authorized request: ${request.method} ${path} - IP: ${ip}`);
+    console.log(`Request from user agent: ${request.headers.get('user-agent') || 'unknown'}`);
     
     // Valid token, continue
     return NextResponse.next();
