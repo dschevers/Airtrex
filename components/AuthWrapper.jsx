@@ -6,19 +6,6 @@ export default function AuthWrapper({ children }) {
   const [csrfToken, setCsrfToken] = useState('');
   const router = useRouter();
 
-  // 1) Grab a fresh CSRF token on mount
-  useEffect(() => {
-    fetch('/api/auth/csrf', { credentials: 'include' })
-      .then(res => {
-        if (!res.ok) throw new Error('CSRF fetch failed');
-        return res.json();
-      })
-      .then(data => setCsrfToken(data.csrfToken))
-      .catch(err => {
-        console.error('Failed to load CSRF token:', err);
-      });
-  }, []);
-
   // 2) Logout handler
   const handleLogout = async () => {
     try {

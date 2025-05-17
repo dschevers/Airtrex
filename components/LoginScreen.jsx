@@ -1,51 +1,61 @@
 'use client';
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginScreen() {
-  const [password, setPassword]   = useState('');
-  const [error, setError]         = useState('');
-  const [csrfToken, setCsrfToken] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  // form state
+  const [password, setPassword]       = useState('');
+  const [csrfToken, setCsrfToken]     = useState('');
+  const [isLoading, setIsLoading]     = useState(false);
+  const [error, setError]             = useState('');
+
+  // 1) Fetch & store CSRF token cookie + header value
   useEffect(() => {
     fetch('/api/auth/csrf', { credentials: 'include' })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('CSRF fetch failed');
+        return res.json();
+      })
       .then(data => setCsrfToken(data.csrfToken))
-      .catch(err => console.error('CSRF fetch failed:', err));
+      .catch(err => console.error('Failed to fetch CSRF token:', err));
   }, []);
 
+  // 2) Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
-      const res = await fetch('/api/auth/validate', {
-        method: 'POST',
-        credentials: 'include',
+      const response = await fetch('/api/auth/validate', {
+        method:      'POST',
+        credentials: 'include',          // send the csrf-token cookie
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
+          'X-CSRF-Token':  csrfToken     // send the header
         },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password })
       });
 
-      if (res.ok) {
+      const data = await response.json();
+      if (response.ok) {
+        // on successful auth, redirect to landing page
         router.push('/');
       } else {
-        const { error: msg } = await res.json();
-        setError(msg || 'Authentication failed. Please try again.');
+        setError(data.error || 'Login failed');
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('An error occurred. Please try again later.');
+      setError('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
+  // 3) Render
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div

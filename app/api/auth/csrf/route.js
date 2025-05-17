@@ -1,21 +1,18 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { cookies } from 'next/headers';
 
 export async function GET() {
-  // Generate CSRF token
+  // 1) Generate a new token
   const csrfToken = crypto.randomBytes(32).toString('hex');
-  
-  // Set in cookie for validation
-  const cookieStore = await cookies();
-  // Remove the incorrect await directly on cookies().set
-  cookieStore.set('csrf-token', csrfToken, {
+
+  // 2) Build a response and attach Set-Cookie
+  const res = NextResponse.json({ csrfToken });
+  res.cookies.set('csrf-token', csrfToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure:   process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    path: '/'
+    path:     '/'
   });
-  
-  // Return to client
-  return NextResponse.json({ csrfToken });
+
+  return res;
 }
