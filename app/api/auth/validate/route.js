@@ -32,7 +32,6 @@ export async function POST(request) {
       attemptCount = record.AttemptCount;
       
       if (record.LockUntil && new Date(record.LockUntil).getTime() > currentTime) {
-        isLocked = true;
         const remainingTime = Math.ceil((new Date(record.LockUntil).getTime() - currentTime) / 1000 / 60);
         
         return NextResponse.json(
