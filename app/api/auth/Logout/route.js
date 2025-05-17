@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { executeQuery, sql } from '../../../../lib/db';
 
-export async function POST(_request) {
+export async function POST() {
   try {
     // Get auth token
     const cookieStore = cookies();

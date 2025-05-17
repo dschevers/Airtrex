@@ -82,7 +82,7 @@ export async function POST(request) {
       ]);
       
       // Set cookie with session token
-      const cookieStore = cookies();
+      const cookieStore = await cookies();
       cookieStore.set('airtrex-auth-token', sessionToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
