@@ -42,7 +42,7 @@ export async function GET() {
       units:       unitsRes.recordset
     });
   } catch (error) {
-    console.error('Error fetching dropdown options:', error);
+    console.error('Error fetching dropdown options:', error.message);
     // You can still return fallback data, optionally with a 500 status
     return NextResponse.json(fallbackData, { status: 500 });
   }

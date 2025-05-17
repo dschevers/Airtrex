@@ -54,7 +54,7 @@ export async function GET(request, { params }) {
     
     return NextResponse.json(order);
   } catch (error) {
-    console.error('Error getting order details:', error);
+    console.error('Error getting order details:', error.message);
     return NextResponse.json(
       { error: 'Server error' }, 
       { status: 500 }

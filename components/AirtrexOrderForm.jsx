@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const fallbackData = {
   workOrders: [
@@ -53,6 +53,7 @@ export default function AirtrexOrderForm() {
     ]
   });
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
+  const [csrfToken, setCsrfToken] = useState('');
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [activeRows, setActiveRows] = useState(1);
   const [formErrors, setFormErrors] = useState({});
@@ -65,6 +66,23 @@ export default function AirtrexOrderForm() {
     locations: [],
     units: []
   });
+
+  useEffect(() => {
+  fetch('/api/auth/csrf', {
+    credentials: 'include'        // ← ensures any cookies are sent/received
+  })
+    .then(res => {
+      if (!res.ok) throw new Error('CSRF fetch failed');
+      return res.json();
+    })
+    .then(data => {
+      setCsrfToken(data.csrfToken); 
+    })
+    .catch(err => {
+      console.error('Could not load CSRF token:', err);
+      // optionally show an error to the user
+    });
+}, []);
 
   // Check if user has selected required fields to unlock the form
   const isFormUnlocked = formData.workOrder && formData.requesterName;
@@ -307,8 +325,10 @@ const handleChange = (e, index = null) => {
       // Submit the order
       const response = await fetch('/api/orders', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken
         },
         body: JSON.stringify(submissionData)
       });

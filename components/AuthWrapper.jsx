@@ -1,52 +1,48 @@
-"use client";
-import { useState, useEffect } from 'react';
-import LoginScreen from './LoginScreen';
+'use client';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-const AuthWrapper = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  
+export default function AuthWrapper({ children }) {
+  const [csrfToken, setCsrfToken] = useState('');
+  const router = useRouter();
+
+  // 1) Grab a fresh CSRF token on mount
   useEffect(() => {
-    // Check if there's a session cookie
-    // The middleware will handle actual validation
-    const hasAuthCookie = document.cookie.includes('airtrex-auth-token=');
-    setIsAuthenticated(hasAuthCookie);
-    setIsLoading(false);
+    fetch('/api/auth/csrf', { credentials: 'include' })
+      .then(res => {
+        if (!res.ok) throw new Error('CSRF fetch failed');
+        return res.json();
+      })
+      .then(data => setCsrfToken(data.csrfToken))
+      .catch(err => {
+        console.error('Failed to load CSRF token:', err);
+      });
   }, []);
-  
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-  };
-  
+
+  // 2) Logout handler
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
+      const res = await fetch('/api/auth/logout', {
+        method:      'POST',
+        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type':  'application/json',
+          'X-CSRF-Token':   csrfToken
         }
       });
-      
-      // Redirect to login page
-      setIsAuthenticated(false);
-      window.location.href = '/login';
+
+      if (res.ok) {
+        // Redirect to login page
+        router.push('/login');
+      } else {
+        const err = await res.json().catch(() => null);
+        console.error('Logout failed:', err || res.statusText);
+      }
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
-  
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-  
-  if (!isAuthenticated) {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
-  
+
   return (
     <div>
       <div className="bg-gray-100 p-2 text-right">
@@ -60,6 +56,4 @@ const AuthWrapper = ({ children }) => {
       {children}
     </div>
   );
-};
-
-export default AuthWrapper;
+}

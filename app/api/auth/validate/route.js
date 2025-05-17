@@ -1,15 +1,17 @@
-// app/api/auth/validate/route.js
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { v4 as uuidv4 } from 'uuid';
 import { executeQuery, sql } from '../../../../lib/db';
+import { csrfProtection } from '../../../../lib/crsf-middleware';
+import { devLog } from '../../../../lib/logger';
+
 
 // Rate limiting setup (using database for persistence)
 const MAX_ATTEMPTS = 5;
 const LOCK_TIME = 15 * 60 * 1000; // 15 minutes
 
-export async function POST(request) {
+export const POST = csrfProtection(async (request) => {
   try {
     // Get IP for rate limiting
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
@@ -82,7 +84,7 @@ export async function POST(request) {
       ]);
       
       // Set cookie with session token
-      const cookieStore = await cookies();
+      const cookieStore = cookies();
       cookieStore.set('airtrex-auth-token', sessionToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -92,7 +94,7 @@ export async function POST(request) {
       });
       
       // Log successful login
-      console.log(`[${new Date().toISOString()}] Successful login from IP: ${ip}`);
+      devLog(`[${new Date().toISOString()}] Successful login from IP: ${ip}`);
       
       return NextResponse.json({ 
         success: true,
@@ -125,8 +127,7 @@ export async function POST(request) {
       ]);
       
       // Log failed login attempt
-      console.log(`[${new Date().toISOString()}] Failed login attempt from IP: ${ip}, Attempt #${attemptCount}`);
-      
+      devLog(`[${new Date().toISOString()}] Failed login attempt from IP: ${ip}, Attempt #${attemptCount}`);      
       // Add delay to prevent timing attacks
       await new Promise(resolve => setTimeout(resolve, 1000));
       
@@ -144,11 +145,11 @@ export async function POST(request) {
       }
     }
   } catch (error) {
-    console.error('Authentication error:', error);
+    console.error('Authentication error:', error.message);
     
     return NextResponse.json(
       { error: 'Server error' },
       { status: 500 }
     );
   }
-}
+});
