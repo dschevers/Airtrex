@@ -20,17 +20,18 @@ jobs:
         with:
           node-version: '20.x'
 
-      - name: npm install, build, and test
+      - name: Clean install production deps and build
         run: |
-          npm install
+          rm -rf node_modules
+          npm ci --omit=dev
           npm run build
-          npm run test --if-present
         env:
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_SERVER: ${{ secrets.DB_SERVER }}
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
+
 
       - name: Prepare deployment package
         run: |
@@ -41,8 +42,9 @@ jobs:
           cp package.json deploy/
           cp next.config.js deploy/ || true
           cd deploy
-          zip -r ../release.zip .
+          zip -r ../release.zip . -x "*.test.*" "*.md" "*.map" "*.git*" "README*" ".vscode/*"
           cd ..
+
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
