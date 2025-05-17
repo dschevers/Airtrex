@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { executeQuery, sql } from '../lib/db';  // <-- use your mssql pool
-import { devLog } from './lib/logger';
 
 export const config = {
   matcher: ['/((?!api/auth/validate|login|_next/static|_next/image|favicon.ico|images).*)'],
