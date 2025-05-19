@@ -1,4 +1,3 @@
-// app/middleware.js
 import { NextResponse } from 'next/server';
 
 export const config = {
@@ -6,15 +5,16 @@ export const config = {
 };
 
 export async function middleware(request) {
+  const { pathname } = request.nextUrl;
+  
   // Skip auth check for public routes
   const publicPaths = ['/login', '/api/auth/validate', '/api/auth/csrf', '/api/auth/logout'];
-  const path = request.nextUrl.pathname;
   
   if (
-    publicPaths.includes(path) ||
-    path.startsWith('/_next/') ||
-    path.startsWith('/images/') ||
-    path === '/favicon.ico'
+    publicPaths.includes(pathname) ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/images/') ||
+    pathname === '/favicon.ico'
   ) {
     return NextResponse.next();
   }
@@ -23,8 +23,8 @@ export async function middleware(request) {
   const token = request.cookies.get('airtrex-auth-token')?.value;
   if (!token) {
     // No token found - redirect to login
-    const url = new URL('/login', request.url);
-    return NextResponse.redirect(url);
+    // Use absolute URL to ensure proper redirection in all environments
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   // In middleware, we can only check if the token exists

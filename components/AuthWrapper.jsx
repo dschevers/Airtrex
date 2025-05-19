@@ -27,7 +27,11 @@ export default function AuthWrapper({ children }) {
         return;
       }
 
-      const res = await fetch('/api/auth/logout', {
+      // Use absolute URL for API calls
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+      const url = baseUrl ? `https://${baseUrl}/api/auth/logout` : '/api/auth/logout';
+      
+      const res = await fetch(url, {
         method: 'POST',
         credentials: 'include',
         headers: {
