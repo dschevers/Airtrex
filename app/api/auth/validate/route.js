@@ -12,7 +12,7 @@ export const POST = csrfProtection(async (request) => {
     const { password } = await request.json();
     
     // Log environment variables for debugging (remove in production)
-    console.log('Environment variables:', { 
+    devLog('Environment variables:', { 
       NODE_ENV: process.env.NODE_ENV,
       HASHED_PASSWORD_EXISTS: !!process.env.HASHED_PASSWORD,
       // Don't log the actual password

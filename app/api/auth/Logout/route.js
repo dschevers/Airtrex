@@ -4,6 +4,7 @@ import { executeQuery, sql } from '../../../../lib/db';
 import { csrfProtection } from '../../../../lib/csrf-middleware';
 import { devLog } from '../../../../lib/logger';
 
+// app/api/auth/logout/route.js - Ensure proper cookie handling
 export const POST = csrfProtection(async () => {
   try {
     const cookieStore = await cookies();
@@ -20,20 +21,23 @@ export const POST = csrfProtection(async () => {
         [{ name: 'token', type: sql.NVarChar, value: token }]
       );
       
-      // Tell the browser to delete the cookie
-      cookieStore.delete('airtrex-auth-token', { path: '/' });
+      // Tell the browser to delete the cookie - be explicit with the settings
+      cookieStore.delete('airtrex-auth-token', { 
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+      });
+      
       devLog('🛑 [Logout] cookieStore.delete called for airtrex-auth-token');
     }
     
-    devLog('🛑 [Logout] Response headers being sent:', null);
-    
-    // Return a successful response with session cookie deleted
+    // Return a successful response with explicit cookie deletion
     return NextResponse.json(
       { success: true },
       {
         status: 200,
         headers: {
-          'Set-Cookie': 'airtrex-auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict'
+          'Set-Cookie': 'airtrex-auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict; Secure=' + (process.env.NODE_ENV === 'production' ? 'true' : 'false')
         }
       }
     );

@@ -27,11 +27,8 @@ export default function AuthWrapper({ children }) {
         return;
       }
 
-      // Use absolute URL for API calls
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
-      const url = baseUrl ? `https://${baseUrl}/api/auth/logout` : '/api/auth/logout';
-      
-      const res = await fetch(url, {
+      // Use relative URL instead of absolute
+      const res = await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -41,6 +38,8 @@ export default function AuthWrapper({ children }) {
       });
 
       if (res.ok) {
+        // Force clear the cookie ourselves as well
+        document.cookie = "airtrex-auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict";
         // Redirect to login page
         router.push('/login');
       } else {
