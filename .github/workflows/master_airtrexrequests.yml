@@ -39,18 +39,16 @@ jobs:
           cp -r .next/standalone/* deploy/
           cp -r .next/static deploy/.next/static
           cp -r public deploy/public
+          cp -r node_modules deploy/node_modules
           cp next.config.js deploy/ || true
-
-          cat << 'EOF' > deploy/startup.sh
-          #!/bin/sh
+          echo '#!/bin/sh
           cd /home/site/wwwroot
-          PORT=8080 node server.js
-          EOF
-
+          PORT=8080 node node_modules/next/dist/bin/next start' > deploy/startup.sh
           chmod +x deploy/startup.sh
           cd deploy
           zip -r ../release.zip .
           cd ..
+
 
       - name: 📤 Upload artifact for deployment
         uses: actions/upload-artifact@v4
