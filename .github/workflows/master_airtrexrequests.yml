@@ -32,10 +32,10 @@ jobs:
           DB_SERVER: ${{ secrets.DB_SERVER }}
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
-
+          
       - name: 📂 Prepare standalone deployment package
         run: |
-          mkdir deploy
+          mkdir -p deploy/.next/static
           cp -r .next/standalone/* deploy/
           cp -r .next/static deploy/.next/static
           cp -r public deploy/public
@@ -43,6 +43,7 @@ jobs:
           cd deploy
           zip -r ../release.zip .
           cd ..
+
 
       - name: 📤 Upload artifact for deployment
         uses: actions/upload-artifact@v4
