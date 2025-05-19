@@ -1,116 +1,128 @@
 'use client';
-
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function LoginScreen() {
+export default function LoginForm() {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [csrfToken, setCsrfToken] = useState('');
   const router = useRouter();
 
-  // form state
-  const [password, setPassword]       = useState('');
-  const [csrfToken, setCsrfToken]     = useState('');
-  const [isLoading, setIsLoading]     = useState(false);
-  const [error, setError]             = useState('');
-
-  // 1) Fetch & store CSRF token cookie + header value
+  // Fetch CSRF token on component mount
   useEffect(() => {
-    fetch('/api/auth/csrf', { credentials: 'include' })
-      .then(res => {
-        if (!res.ok) throw new Error('CSRF fetch failed');
-        return res.json();
-      })
-      .then(data => setCsrfToken(data.csrfToken))
-      .catch(err => console.error('Failed to fetch CSRF token:', err));
+    const fetchCsrfToken = async () => {
+      try {
+        const res = await fetch('/api/auth/csrf', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        
+        if (!res.ok) throw new Error('Failed to fetch CSRF token');
+        
+        const data = await res.json();
+        setCsrfToken(data.csrfToken);
+        console.log('CSRF token fetched successfully');
+      } catch (err) {
+        console.error('Error fetching CSRF token:', err);
+        setError('Failed to initialize security. Please refresh the page.');
+      }
+    };
+    
+    fetchCsrfToken();
   }, []);
 
-  // 2) Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    if (!csrfToken) {
+      setError('Security token not initialized. Please refresh the page.');
+      return;
+    }
+    
+    setLoading(true);
     setError('');
-
+    
     try {
-      const response = await fetch('/api/auth/validate', {
-        method:      'POST',
-        credentials: 'include',          // send the csrf-token cookie
+      const res = await fetch('/api/auth/validate', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token':  csrfToken     // send the header
+          'X-CSRF-Token': csrfToken
         },
-        body: JSON.stringify({ password })
+        credentials: 'include',
+        body: JSON.stringify({ 
+          password, 
+          csrfToken // Include CSRF token in body as well
+        })
       });
-
-      const data = await response.json();
-      if (response.ok) {
-        // on successful auth, redirect to landing page
-        router.push('/');
-      } else {
-        setError(data.error || 'Login failed');
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Login failed');
       }
+      
+      // Login successful
+      console.log('Login successful');
+      
+      // Redirect to dashboard/home
+      router.push('/');
+      
     } catch (err) {
       console.error('Login error:', err);
-      setError('An unexpected error occurred');
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // 3) Render
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div
-        className="w-full max-w-md bg-white p-8 rounded-lg shadow-lg border-2"
-        style={{ borderColor: '#0033cc' }}
-      >
-        <div className="text-center mb-6">
-          <img
-            src="/images/airtrex-logo.png"
-            alt="Airtrex Logo"
-            className="w-40 h-auto mx-auto mb-4"
-          />
-          <h1
-            className="text-2xl font-bold"
-            style={{ color: '#0033cc' }}
-          >
-            Airtrex Forms Portal
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Please enter your password to access the forms
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8 p-10 bg-white rounded-xl shadow-md">
+        <div className="text-center">
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+            Welcome to Airtrex
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Please sign in to continue
           </p>
         </div>
-
+        
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+          <div className="bg-red-50 border-l-4 border-red-500 p-4">
+            <p className="text-red-700">{error}</p>
           </div>
         )}
-
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
+        
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="rounded-md shadow-sm">
+            <div>
+              <label htmlFor="password" className="sr-only">Password</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading || !csrfToken}
-            className="w-full py-2 px-4 text-white font-medium rounded-md transition duration-150"
-            style={{ backgroundColor: isLoading ? '#ccc' : '#0033cc' }}
-          >
-            {isLoading ? 'Verifying...' : 'Log In'}
-          </button>
+          <div>
+            <button
+              type="submit"
+              disabled={loading || !csrfToken}
+              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                (loading || !csrfToken) ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {loading ? 'Signing in...' : 'Sign in'}
+            </button>
+          </div>
         </form>
       </div>
     </div>

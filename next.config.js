@@ -1,12 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
-
-    const csp = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';";
-
+    
+    // In production, use stricter CSP without unsafe-eval
+    // In development, include unsafe-eval which is needed by Next.js dev tools
+    const csp = isProd
+      ? "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+      : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';";
+    
     const baseHeaders = [
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'X-Frame-Options',        value: 'DENY' },
@@ -14,7 +17,6 @@ const nextConfig = {
       { key: 'Referrer-Policy',        value: 'strict-origin-when-cross-origin' },
       { key: 'Content-Security-Policy',value: csp }
     ];
-
     const secureHeaders = isProd
       ? [
           {
@@ -33,7 +35,6 @@ const nextConfig = {
           }
         ]
       : [];
-
     return [
       {
         source: '/(.*)',
@@ -42,5 +43,4 @@ const nextConfig = {
     ];
   },
 };
-
 module.exports = nextConfig;

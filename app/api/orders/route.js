@@ -1,6 +1,6 @@
 // app/api/orders/route.js
 import { NextResponse } from 'next/server';
-import { csrfProtection } from '../../../lib/crsf-middleware';
+import { csrfProtection } from '../../../lib/csrf-middleware';
 import { executeQuery, sql, getPool } from '../../../lib/db';
 import { validateOrderData, sanitizeOrderData } from '../../../lib/validation';
 import { devLog } from '../../../lib/logger';
