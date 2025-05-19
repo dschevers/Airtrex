@@ -1,9 +1,10 @@
 // app/api/orders/[id]/route.js
 import { NextResponse } from 'next/server';
 import { executeQuery, sql } from '../../../../lib/db';
+import { withAuth } from '../../../../lib/auth';
 
 // GET request to fetch a specific order by ID
-export async function GET(request, { params }) {
+export const GET = withAuth(async (request, { params }) => {
   try {
     const poNumber = params.id;
     
@@ -60,4 +61,4 @@ export async function GET(request, { params }) {
       { status: 500 }
     );
   }
-}
+});

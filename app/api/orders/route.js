@@ -1,10 +1,13 @@
+// app/api/orders/route.js
 import { NextResponse } from 'next/server';
 import { csrfProtection } from '../../../lib/crsf-middleware';
 import { executeQuery, sql, getPool } from '../../../lib/db';
 import { validateOrderData, sanitizeOrderData } from '../../../lib/validation';
 import { devLog } from '../../../lib/logger';
+import { withAuth } from '../../../lib/auth';
 
-export const POST = csrfProtection(async (request) => {
+// Combine CSRF protection and authentication
+export const POST = withAuth(csrfProtection(async (request) => {
   // 1) Parse incoming JSON
   const orderData = await request.json();
 
@@ -95,9 +98,9 @@ export const POST = csrfProtection(async (request) => {
       { status: 500 }
     );
   }
-});
+}));
 
-export async function GET() {
+export const GET = withAuth(async () => {
   try {
     const result = await executeQuery(`
       SELECT
@@ -128,4 +131,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});

@@ -1,8 +1,10 @@
+// app/api/dropdowns/route.js
 import { NextResponse } from 'next/server';
 import { executeQuery } from '../../../lib/db';
 import { fallbackData } from '../../../lib/fallbackData';
+import { withAuth } from '../../../lib/auth';
 
-export async function GET() {
+export const GET = withAuth(async () => {
   try {
     // Run all four queries in parallel
     const [ 
@@ -46,4 +48,4 @@ export async function GET() {
     // You can still return fallback data, optionally with a 500 status
     return NextResponse.json(fallbackData, { status: 500 });
   }
-}
+});

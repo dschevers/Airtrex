@@ -1,5 +1,5 @@
+// app/middleware.js
 import { NextResponse } from 'next/server';
-import { executeQuery, sql } from '../lib/db';  // <-- use your mssql pool
 
 export const config = {
   matcher: ['/((?!api/auth/validate|login|_next/static|_next/image|favicon.ico|images).*)'],
@@ -7,8 +7,9 @@ export const config = {
 
 export async function middleware(request) {
   // Skip auth check for public routes
-  const publicPaths = ['/login', '/api/auth/validate'];
+  const publicPaths = ['/login', '/api/auth/validate', '/api/auth/csrf', '/api/auth/logout'];
   const path = request.nextUrl.pathname;
+  
   if (
     publicPaths.includes(path) ||
     path.startsWith('/_next/') ||
@@ -21,30 +22,12 @@ export async function middleware(request) {
   // Get token from cookie
   const token = request.cookies.get('airtrex-auth-token')?.value;
   if (!token) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    // No token found - redirect to login
+    const url = new URL('/login', request.url);
+    return NextResponse.redirect(url);
   }
 
-  try {
-    // Verify session in Azure SQL
-    const result = await executeQuery(
-      `
-        SELECT Token
-        FROM Sessions
-        WHERE Token = @token
-          AND ExpiresAt   > GETDATE()
-          AND IsRevoked   = 0
-      `,
-      [{ name: 'token', type: sql.NVarChar, value: token }]
-    );
-
-    if (result.recordset.length === 0) {
-      // no matching valid session
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    return NextResponse.next();
-  } catch (err) {
-    console.error('Auth middleware error:', err.message);
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
+  // In middleware, we can only check if the token exists
+  // The actual validation will happen in your API routes or pages
+  return NextResponse.next();
 }
