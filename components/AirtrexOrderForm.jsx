@@ -93,7 +93,9 @@ export default function AirtrexOrderForm() {
       try {
         setIsLoading(true);
         // Try to get data from API
-        const response = await fetch('/api/dropdowns');
+       const response = await fetch('/api/dropdowns', {
+         credentials: 'include'
+       });
         
         if (response.ok) {
           const data = await response.json();

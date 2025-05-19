@@ -1,35 +1,51 @@
-import { NextResponse } from 'next/server';
+// middleware.js
+import { NextResponse } from 'next/server'
 
+/** Regex to catch any “.ext” file: .js .css .png .jpg .ico etc */
+const PUBLIC_FILE = /\.(.*)$/
+
+/** Only run this middleware on non‐public paths */
 export const config = {
-  matcher: ['/((?!api/auth/validate|api/auth/csrf|api/auth/logout|login|_next/static|_next/image|favicon.ico|images).*)'],
-};
+  matcher: [
+    '/((?!api/auth/validate|api/auth/csrf|api/auth/logout|login|_next/static|_next/image|favicon.ico|images).*)'
+  ]
+}
 
-export async function middleware(request) {
-  const { pathname } = request.nextUrl;
-  
-  // Check if the path should be public
-  const isPublicPath = [
-    '/login', 
-    '/api/auth/validate', 
-    '/api/auth/csrf', 
+export function middleware(request) {
+  const { pathname } = request.nextUrl
+
+  // ── 1) Let Next.js internals and static files through ───────────────
+  if (
+    // asset served from .next/
+    pathname.startsWith('/_next/') ||
+    // your image optimizer
+    pathname.startsWith('/_next/image') ||
+    // any “.xxx” file (css, js, png, svg…)
+    PUBLIC_FILE.test(pathname) ||
+    // favicon
+    pathname === '/favicon.ico'
+  ) {
+    return NextResponse.next()
+  }
+
+  // ── 2) Let your public auth endpoints + login page through ───────────
+  const PUBLIC_PATHS = [
+    '/login',
+    '/api/auth/validate',
+    '/api/auth/csrf',
     '/api/auth/logout'
-  ].some(path => pathname === path || pathname.startsWith(path));
-  
-  const isStaticAsset = 
-    pathname.startsWith('/_next/') || 
-    pathname.startsWith('/images/') || 
-    pathname === '/favicon.ico';
-  
-  if (isPublicPath || isStaticAsset) {
-    return NextResponse.next();
+  ]
+  if (PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p))) {
+    return NextResponse.next()
   }
 
-  // Get token from cookie
-  const token = request.cookies.get('airtrex-auth-token')?.value;
+  // ── 3) Otherwise, enforce login by checking the cookie ────────────────
+  const token = request.cookies.get('airtrex-auth-token')?.value
   if (!token) {
-    // Construct absolute URL for redirection
-    return NextResponse.redirect(new URL('/login', request.url));
+    // Not logged in → redirect to /login
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  return NextResponse.next();
+  // Logged in → allow
+  return NextResponse.next()
 }
