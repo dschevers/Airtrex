@@ -32,6 +32,94 @@ jobs:
           DB_SERVER: ${{ secrets.DB_SERVER }}
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
+
+      - name: 📂 Prepare test deployment package
+        run: |
+          # Create a simple test application
+          mkdir -p test-deploy
+          
+          # Create a basic server.js file
+          echo 'const http = require("http");
+          const port = process.env.PORT || 8080;
+          
+          const server = http.createServer((req, res) => {
+            console.log(`Request received: ${req.method} ${req.url}`);
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "text/html");
+            res.end(`
+              <!DOCTYPE html>
+              <html>
+                <head><title>Azure Test App</title></head>
+                <body>
+                  <h1>Azure Test App is Running</h1>
+                  <p>Server time: ${new Date().toISOString()}</p>
+                  <p>Node version: ${process.version}</p>
+                  <p>Environment:</p>
+                  <pre>${JSON.stringify(process.env, null, 2)}</pre>
+                </body>
+              </html>
+            `);
+          });
+          
+          server.listen(port, () => {
+            console.log(`Server running on port ${port}`);
+          });' > test-deploy/server.js
+          
+          # Create package.json
+          echo '{
+            "name": "azure-test-app",
+            "version": "1.0.0",
+            "private": true,
+            "scripts": {
+              "start": "node server.js"
+            }
+          }' > test-deploy/package.json
+          
+          # Create web.config
+          echo '<?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <system.webServer>
+              <handlers>
+                <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
+              </handlers>
+              <rewrite>
+                <rules>
+                  <rule name="StaticContent">
+                    <action type="Rewrite" url="public{REQUEST_URI}" />
+                  </rule>
+                  <rule name="DynamicContent">
+                    <conditions>
+                      <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="True" />
+                    </conditions>
+                    <action type="Rewrite" url="server.js" />
+                  </rule>
+                </rules>
+              </rewrite>
+              <iisnode nodeProcessCommandLine="node" watchedFiles="web.config;*.js" loggingEnabled="true" />
+            </system.webServer>
+          </configuration>' > test-deploy/web.config
+          
+          # Create directory for static files
+          mkdir -p test-deploy/public
+          
+          # Add a simple static file
+          echo '<html><body>Static file test</body></html>' > test-deploy/public/static-test.html
+          
+          # Create startup script
+          echo '#!/bin/sh
+          cd /home/site/wwwroot
+          PORT=8080 node server.js' > test-deploy/startup.sh
+          chmod +x test-deploy/startup.sh
+          
+          # Create iisnode.yml for logging
+          echo 'loggingEnabled: true
+          logDirectory: iisnode
+          nodeProcessCommandLine: "node"' > test-deploy/iisnode.yml
+          
+          # Package everything
+          cd test-deploy
+          zip -r ../release.zip .
+          cd ..
           
       - name: 📂 Prepare standalone deployment package
         run: |
