@@ -40,6 +40,11 @@ jobs:
           cp -r .next/static deploy/.next/static
           cp -r public deploy/public
           cp next.config.js deploy/ || true
+          # Create a startup file
+          echo "#!/bin/sh" > deploy/startup.sh
+          echo "cd /home/site/wwwroot" >> deploy/startup.sh
+          echo "NODE_ENV=production node server.js" >> deploy/startup.sh
+          chmod +x deploy/startup.sh
           cd deploy
           zip -r ../release.zip .
           cd ..
