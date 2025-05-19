@@ -39,7 +39,9 @@ jobs:
           cp -r .next/standalone/* deploy/
           cp -r .next/static deploy/.next/static
           cp -r public deploy/public
-          cp -r node_modules deploy/node_modules
+          rm -rf deploy/node_modules
+          mkdir -p deploy/node_modules
+          cp -r node_modules/* deploy/node_modules/
           cp next.config.js deploy/ || true
           echo '#!/bin/sh
           cd /home/site/wwwroot
