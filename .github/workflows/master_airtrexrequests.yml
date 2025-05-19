@@ -11,15 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-
+  
     steps:
       - uses: actions/checkout@v4
-
+  
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
-
+  
       - name: Install all dependencies, build, and prune dev packages
         run: |
           npm ci
@@ -31,7 +31,7 @@ jobs:
           DB_SERVER: ${{ secrets.DB_SERVER }}
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
-
+  
       - name: Prepare deployment package
         run: |
           mkdir deploy
@@ -40,10 +40,18 @@ jobs:
           cp -r node_modules deploy/
           cp package.json deploy/
           cp next.config.js deploy/ || true
+  
+      - name: 🧪 Debug:show deploy folder contents
+        run: |
+          sudo apt-get update && sudo apt-get install tree -y
+          tree deploy -L 3
+  
+      - name: Zip deployment package
+        run: |
           cd deploy
           zip -r ../release.zip . -x "*.test.*" "*.md" "*.map" "*.git*" "README*" ".vscode/*"
           cd ..
-
+  
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -71,6 +79,5 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'airtrexrequests'
-          slot-name: 'Production'
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_8F1A663139A6471BBB0B85FEBF386A29 }}
