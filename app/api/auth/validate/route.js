@@ -82,7 +82,6 @@ export const POST = csrfProtection(async (request) => {
     
     if (!isValid) {
       const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-      const userAgent = request.headers.get('user-agent') || 'unknown';
       
       try {
         // Check if we have a record for this IP

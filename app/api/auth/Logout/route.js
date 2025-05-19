@@ -4,7 +4,7 @@ import { executeQuery, sql } from '../../../../lib/db';
 import { csrfProtection } from '../../../../lib/csrf-middleware';
 import { devLog } from '../../../../lib/logger';
 
-export const POST = csrfProtection(async (request) => {
+export const POST = csrfProtection(async () => {
   try {
     const cookieStore = await cookies();
     
