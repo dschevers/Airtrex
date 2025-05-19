@@ -78,3 +78,4 @@ jobs:
           app-name: 'airtrexrequests'
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_8F1A663139A6471BBB0B85FEBF386A29 }}
+          startup-command: './startup.sh'
