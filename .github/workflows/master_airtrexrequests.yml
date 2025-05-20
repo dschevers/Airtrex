@@ -36,7 +36,6 @@ jobs:
       - name: 📂 Prepare deployment package
         run: |
           mkdir -p deploy/.next/static
-          cp -r .next/standalone/* deploy/
           cp middleware.js deploy/
           cp -r .next/static deploy/.next/static
           cp -r public deploy/public
@@ -46,7 +45,7 @@ jobs:
           cp next.config.js deploy/ || true
           echo '#!/bin/sh
           cd /home/site/wwwroot
-          PORT=8080 node server.js' > deploy/startup.sh
+          PORT=8080 node node_modules/next/dist/bin/next start
           chmod +x deploy/startup.sh
           cd deploy
           zip -r ../release.zip .
