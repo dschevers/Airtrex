@@ -2,39 +2,71 @@
 
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
 
 export default function LandingPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
-  // Define your forms here
+  // Client-side auth check
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/validate', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.authenticated) {
+          router.push('/login');
+        } else {
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err);
+        router.push('/login');
+      }
+    };
+
+    checkAuth();
+  }, [router]);
+
+  if (loading) return null;
+
+  // Forms config
   const forms = [
     {
       id: 'order-request',
       title: 'Parts Order Request',
       description: 'Submit requests for parts and materials',
       icon: '📦',
-      color: '#0033cc', // Airtrex blue
+      color: '#0033cc',
       path: '/parts-request',
-      status: 'active'
+      status: 'active',
     },
     {
       id: 'purchase-order',
       title: 'Purchase Order Form',
       description: 'Create purchase orders for vendors',
       icon: '💰',
-      color: '#009933', // Airtrex green
+      color: '#009933',
       path: '/purchase-order',
-      status: 'coming-soon'
+      status: 'coming-soon',
     },
     {
       id: 'inventory',
       title: 'Inventory Management',
       description: 'Check and update inventory levels',
       icon: '📊',
-      color: '#cc3300', // Complementary red
+      color: '#cc3300',
       path: '/inventory',
-      status: 'coming-soon'
-    }
+      status: 'coming-soon',
+    },
   ];
 
   const handleCardClick = (path: string, isActive: boolean) => {
@@ -43,7 +75,6 @@ export default function LandingPage() {
     }
   };
 
-  // Logo component using the image file
   const AirtrexLogo = () => (
     <Image 
       src="/images/airtrex-logo.png" 
@@ -57,30 +88,20 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       <style jsx global>{`
-        /* Define our global animation CSS */
         .card-container {
-          /* Add will-change to optimize animation performance */
           will-change: box-shadow, background-color, border-color;
-          /* Set a fixed height to prevent layout shifts */
           height: 100%;
-          /* Add a very subtle transition for box-shadow */
           transition: box-shadow 0.3s ease, background-color 0.3s ease;
-          /* Add a small delay to prevent flickering on hover boundaries */
           transition-delay: 20ms;
         }
-        
-        /* Apply hover styles only to active cards */
         .card-container.active:hover {
           box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
           background-color: rgba(249, 250, 251, 1);
         }
-        
-        /* Arrow animation for active cards */
         .get-started-arrow {
           transition: transform 0.3s ease;
           transition-delay: 20ms;
         }
-        
         .card-container.active:hover .get-started-arrow {
           transform: translateX(4px);
         }
@@ -118,7 +139,6 @@ export default function LandingPage() {
                 <h2 className="text-xl font-semibold text-gray-800">{form.title}</h2>
               </div>
               <p className="text-gray-600 mb-6">{form.description}</p>
-              
               {form.status === 'active' ? (
                 <div 
                   className="inline-flex items-center text-sm font-medium"

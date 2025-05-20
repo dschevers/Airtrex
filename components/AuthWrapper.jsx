@@ -19,37 +19,33 @@ export default function AuthWrapper({ children }) {
   }, []);
 
   // Logout handler
-  const handleLogout = async () => {
-    try {
-      // Ensure we have a CSRF token before attempting logout
-      if (!csrfToken) {
-        console.error('CSRF token not available for logout');
-        return;
-      }
-
-      // Use relative URL instead of absolute
-      const res = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken
-        }
-      });
-
-      if (res.ok) {
-        // Force clear the cookie ourselves as well
-        document.cookie = "airtrex-auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict";
-        // Redirect to login page
-        router.push('/login');
-      } else {
-        const err = await res.json().catch(() => null);
-        console.error('Logout failed:', err || res.statusText);
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
+const handleLogout = async () => {
+  try {
+    if (!csrfToken) {
+      console.error('CSRF token not available for logout');
+      return;
     }
-  };
+
+    const res = await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
+      },
+    });
+
+    if (res.ok) {
+      document.cookie = "airtrex-auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict";
+      router.push('/login');
+    } else {
+      const error = await res.json().catch(() => ({}));
+      console.error('Logout failed:', error);
+    }
+  } catch (err) {
+    console.error('Logout error:', err);
+  }
+};
 
   return (
     <div>
