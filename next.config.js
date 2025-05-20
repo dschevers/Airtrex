@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    cache: true, // ✅ Enables persistent build caching
-  },
 
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
