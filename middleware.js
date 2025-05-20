@@ -1,23 +1,19 @@
 import { NextResponse } from 'next/server';
-import { validateAuthToken } from './lib/auth';
 
 export const config = {
-  matcher: [
-    '/',                  // homepage
-    '/parts-request',
-    '/purchase-order',
-    '/inventory',
-    '/api/dropdowns',     // include only protected API routes
-    '/api/something-else',
-    '/((?!_next|favicon.ico|images|api/auth).*)',  // exclude static & auth via this pattern
-  ]
+  matcher: ['/((?!_next|favicon.ico|images|api/auth).*)'],
 };
 
 export async function middleware(request) {
-  // ✅ Token-based validation using your shared function
-  const { valid } = await validateAuthToken();
+  const res = await fetch(`${request.nextUrl.origin}/api/auth/validate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  });
 
-  if (!valid) {
+  const { authenticated } = await res.json();
+
+  if (!authenticated) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
