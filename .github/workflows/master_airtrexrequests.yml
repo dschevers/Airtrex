@@ -43,24 +43,35 @@ jobs:
 
       - name: 📂 Prepare deployment package
         run: |
-          mkdir -p deploy/.next
-          cp -r .next/server deploy/.next/server
-          cp -r .next/static deploy/.next/static
-          cp .next/BUILD_ID deploy/.next/BUILD_ID
-          cp .next/required-server-files.json deploy/.next/required-server-files.json
-          cp -r app deploy/app
+          mkdir -p deploy
+          
+          # Copy Next build outputs
+          cp -r .next deploy/.next
+          rm -rf deploy/.next/cache
+          rm -rf deploy/.next/static/development
+
+          # Include necessary assets
           cp -r public deploy/public
+          cp next.config.js deploy/ || true
           cp middleware.js deploy/
-          cp next.config.js deploy/
+
+          # Copy only production dependencies
           mkdir -p deploy/node_modules
-          cp -r node_modules/* deploy/node_modules/
+          npm ci
+          npm prune --omit=dev
+          cp -R node_modules/ deploy/node_modules/
+
+          # Startup script
           echo '#!/bin/sh
           cd /home/site/wwwroot
           PORT=8080 node node_modules/next/dist/bin/next start' > deploy/startup.sh
           chmod +x deploy/startup.sh
+
+          # Final ZIP
           cd deploy
           zip -r ../release.zip .
           cd ..
+
 
       - name: 📤 Upload artifact for deployment
         uses: actions/upload-artifact@v4
