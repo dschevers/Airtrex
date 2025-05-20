@@ -1,9 +1,8 @@
-// middleware.js
 import { NextResponse } from 'next/server';
 
 export const config = {
   matcher: [
-    '/((?!api/auth|login|_next|favicon.ico|images).*)' // protect everything else
+    '/((?!api/auth|login|_next|favicon.ico|images).*)'
   ]
 };
 
@@ -14,7 +13,6 @@ export async function middleware(request) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Validate token via internal API
   const res = await fetch(`${request.nextUrl.origin}/api/auth/validate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
