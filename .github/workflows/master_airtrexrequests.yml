@@ -48,6 +48,7 @@ jobs:
           cp -r .next/static deploy/.next/static
           cp .next/BUILD_ID deploy/.next/BUILD_ID
           cp .next/required-server-files.json deploy/.next/required-server-files.json
+          cp -r app deploy/app
           cp -r public deploy/public
           cp middleware.js deploy/
           cp next.config.js deploy/
