@@ -37,7 +37,7 @@ jobs:
         run: |
           mkdir -p deploy/.next/static
           cp middleware.js deploy/
-          cp -r .next/static deploy/.next/static
+          cp -r .next deploy/.next
           cp -r public deploy/public
           rm -rf deploy/node_modules
           mkdir -p deploy/node_modules

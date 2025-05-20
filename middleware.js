@@ -1,27 +1,22 @@
 import { NextResponse } from 'next/server';
+import { validateAuthToken } from './lib/auth';
 
 export const config = {
   matcher: [
-    '/((?!api/auth|login|_next|favicon.ico|images).*)'
+    '/',                 // root
+    '/parts-request',    // page
+    '/purchase-order',
+    '/inventory',
+    '/((?!_next|favicon.ico|images|api/auth).*)',  // excludes static and auth routes
+    '/api/(?!auth/).*',  // all other API routes
   ]
 };
 
 export async function middleware(request) {
-  const token = request.cookies.get('airtrex-auth-token')?.value;
+  // ✅ Token-based validation using your shared function
+  const { valid } = await validateAuthToken();
 
-  if (!token) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-
-  const res = await fetch(`${request.nextUrl.origin}/api/auth/validate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: '{}'
-  });
-
-  const data = await res.json();
-
-  if (!res.ok || !data?.authenticated) {
+  if (!valid) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
