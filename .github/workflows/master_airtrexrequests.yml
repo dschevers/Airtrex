@@ -43,14 +43,16 @@ jobs:
 
       - name: 📂 Prepare deployment package
         run: |
-          mkdir -p deploy
-          cp -r .next deploy/.next
-          rm -rf deploy/.next/cache
-          rm -rf deploy/.next/static/development
+          mkdir -p deploy/.next
+          cp -r .next/server deploy/.next/server
+          cp -r .next/static deploy/.next/static
+          cp .next/BUILD_ID deploy/.next/BUILD_ID
+          cp .next/required-server-files.json deploy/.next/required-server-files.json
           cp -r public deploy/public
           cp middleware.js deploy/
-          cp next.config.js deploy/ || true
-          cp -r node_modules deploy/
+          cp next.config.js deploy/
+          mkdir -p deploy/node_modules
+          cp -r node_modules/* deploy/node_modules/
           echo '#!/bin/sh
           cd /home/site/wwwroot
           PORT=8080 node node_modules/next/dist/bin/next start' > deploy/startup.sh
