@@ -9,8 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
       - name: 🧾 Checkout repo
@@ -20,6 +18,16 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
+
+      - name: 💾 Cache Node.js dependencies and Next.js build
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            .next/cache
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: 📦 Install, build, and prune
         run: |
@@ -42,8 +50,7 @@ jobs:
           cp -r public deploy/public
           cp middleware.js deploy/
           cp next.config.js deploy/ || true
-          mkdir -p deploy/node_modules
-          cp -r node_modules/* deploy/node_modules/
+          cp -r node_modules deploy/node_modules
           echo '#!/bin/sh
           cd /home/site/wwwroot
           PORT=8080 node node_modules/next/dist/bin/next start' > deploy/startup.sh
@@ -51,9 +58,6 @@ jobs:
           cd deploy
           zip -r ../release.zip .
           cd ..
-
-
-
 
       - name: 📤 Upload artifact for deployment
         uses: actions/upload-artifact@v4
