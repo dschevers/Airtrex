@@ -3,12 +3,13 @@ import { validateAuthToken } from './lib/auth';
 
 export const config = {
   matcher: [
-    '/',                 // root
-    '/parts-request',    // page
+    '/',                  // homepage
+    '/parts-request',
     '/purchase-order',
     '/inventory',
-    '/((?!_next|favicon.ico|images|api/auth).*)',  // excludes static and auth routes
-    '/api/(?!auth/).*',  // all other API routes
+    '/api/dropdowns',     // include only protected API routes
+    '/api/something-else',
+    '/((?!_next|favicon.ico|images|api/auth).*)',  // exclude static & auth via this pattern
   ]
 };
 
