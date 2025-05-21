@@ -6,6 +6,18 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['mssql', 'tedious'],
   bundlePagesRouterDependencies: true,
 
+  // ➊ Tell Webpack how to resolve `node:` imports
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.alias = {
+        ...(config.resolve.alias || {}),
+        'node:stream': 'stream',
+        'node:url':    'url',
+      };
+    }
+    return config;
+  },
+
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
     const csp = isProd
