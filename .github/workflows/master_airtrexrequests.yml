@@ -29,45 +29,54 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: 📦 Install, build, and prune
+      - name: 📦 Install & build
         run: |
           npm ci
           npm run build
           npm prune --omit=dev
         env:
-          DB_USER: ${{ secrets.DB_USER }}
+          DB_USER:     ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_SERVER: ${{ secrets.DB_SERVER }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_SERVER:   ${{ secrets.DB_SERVER }}
+          DB_NAME:     ${{ secrets.DB_NAME }}
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
 
-      - name: 📂 Prepare deployment package
+      - name: 📂 Package for Azure deploy
         run: |
-          mkdir -p deploy/.next/static
-          cp -r .next/static deploy/.next/static
-          cp -r .next/server deploy/.next/server
-          cp .next/BUILD_ID deploy/.next/BUILD_ID
-          cp .next/required-server-files.json deploy/.next/required-server-files.json
+          # Prepare directories
+          mkdir -p deploy/.next/{static,server}
 
-          cp middleware.js deploy/
-          cp next.config.js deploy/ || true
+          # Copy compiled Next.js output
+          cp -r .next/static         deploy/.next/static
+          cp -r .next/server         deploy/.next/server
+          cp      .next/BUILD_ID     deploy/.next/BUILD_ID
+          cp      .next/required-server-files.json deploy/.next/required-server-files.json
+
+          # Copy your TS config so Next can load it
+          cp next.config.ts deploy/
+
+          # Copy package files
+          cp package.json package-lock.json deploy/
+
+          # Static assets
           cp -r public deploy/public
 
-          # ✅ Use -a to preserve symlinks/permissions/etc
+          # Runtime dependencies
           cp -a node_modules deploy/node_modules
 
-          # ✅ Startup script
-          echo '#!/bin/sh
+          # Startup script
+          cat > deploy/startup.sh << 'EOF'
+          #!/bin/sh
           cd /home/site/wwwroot
-          PORT=8080 node node_modules/next/dist/bin/next start' > deploy/startup.sh
-
+          export PORT=8080
+          exec node node_modules/next/dist/bin/next start
+          EOF
           chmod +x deploy/startup.sh
+
+          # Zip it all up
           cd deploy
           zip -r ../release.zip .
           cd ..
-
-
-
 
       - name: 📤 Upload artifact for deployment
         uses: actions/upload-artifact@v4
@@ -79,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'Production'
+      name: Production
 
     steps:
       - name: 📥 Download artifact
@@ -94,6 +103,6 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'airtrexrequests'
+          app-name: airtrexrequests
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_8F1A663139A6471BBB0B85FEBF386A29 }}

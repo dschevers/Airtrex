@@ -24,6 +24,8 @@
 .DS_Store
 *.pem
 test_deploy
+print-tree.js
+test-db-connection.js
 
 # debug
 npm-debug.log*

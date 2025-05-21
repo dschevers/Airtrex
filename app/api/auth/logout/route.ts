@@ -1,14 +1,15 @@
-import { NextResponse } from 'next/server';
+// app/api/auth/logout/route.ts
 
-export async function POST() {
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(_request: NextRequest): Promise<NextResponse> {
+  // Clear the auth token cookie by setting it with maxAge=0
   const response = NextResponse.json({ success: true });
-
-  response.headers.set(
-    'Set-Cookie',
-    [
-      'airtrex-auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict'
-    ].join('')
-  );
-
+  response.cookies.set('airtrex-auth-token', '', {
+    httpOnly: true,
+    secure:   process.env.NODE_ENV === 'production',
+    path:     '/',
+    maxAge:   0,
+  });
   return response;
 }

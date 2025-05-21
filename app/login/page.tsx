@@ -1,5 +1,6 @@
 'use client';
-import LoginScreen from '@/components/LoginScreen';
+import LoginScreen from '../../components/LoginScreen';
+
 export default function LoginPage() {
   return <LoginScreen />;
 }
