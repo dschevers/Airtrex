@@ -8,6 +8,7 @@ import React, {
   FormEvent
 } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function LoginForm(): ReactElement {
   const [password, setPassword] = useState<string>('');
@@ -91,9 +92,13 @@ export default function LoginForm(): ReactElement {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-10 bg-white rounded-xl shadow-md">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Welcome to Airtrex
-          </h2>
+          <Image
+            src="/images/airtrex-logo.png"
+            alt="Airtrex Logo"
+            width={120}
+            height={120}
+            className="mx-auto"
+          />
           <p className="mt-2 text-sm text-gray-600">
             Please sign in to continue
           </p>
@@ -126,14 +131,7 @@ export default function LoginForm(): ReactElement {
             </div>
           </div>
 
-          <div className="flex justify-between">
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              Log Out
-            </button>
+          <div className="mt-4 flex justify-end">
             <button
               type="submit"
               disabled={loading || !csrfToken}
@@ -141,7 +139,7 @@ export default function LoginForm(): ReactElement {
                 loading || !csrfToken
                   ? 'bg-blue-300 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-              } focus:outline-none focus:ring-2 focus:ring-offset-2`}
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 ml-auto`}
             >
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
