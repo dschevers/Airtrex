@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Externalize server-only packages to avoid webpack bundling node:stream / node:url
-  experimental: {
-    serverComponentsExternalPackages: ['mssql', 'tedious'],
-  },
+  // Treat these server-only modules as externals, so webpack won't bundle node:stream/node:url
+  serverExternalPackages: ['mssql', 'tedious'],
 
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
