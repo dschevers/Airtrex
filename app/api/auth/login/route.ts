@@ -1,11 +1,12 @@
 // app/api/auth/login/route.ts
+export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies }                from 'next/headers';
-import { executeQuery, sql }      from '../../../../lib/db';
-import { csrfProtection }         from '../../../../lib/csrf-middleware';
-import { v4 as uuidv4 }           from 'uuid';
-import bcrypt                      from 'bcryptjs';
+import { cookies }                  from 'next/headers';
+import { executeQuery, sql }        from '../../../../lib/db';
+import { csrfProtection }           from '../../../../lib/csrf-middleware';
+import { v4 as uuidv4 }             from 'uuid';
+import bcrypt                        from 'bcryptjs';
 
 interface LoginBody {
   password?: string;
@@ -24,10 +25,10 @@ export const POST = csrfProtection(
       const existingToken = cookieStore.get('airtrex-auth-token')?.value;
       if (existingToken) {
         const sessionResult = await executeQuery<{ Token: string }>(
-          `SELECT Token 
-             FROM Sessions 
-            WHERE Token = @token 
-              AND ExpiresAt > GETDATE() 
+          `SELECT Token
+             FROM Sessions
+            WHERE Token = @token
+              AND ExpiresAt > GETDATE()
               AND IsRevoked = 0`,
           [{ name: 'token', type: sql.NVarChar, value: existingToken }]
         );
@@ -84,8 +85,8 @@ export const POST = csrfProtection(
           { name: 'token',      type: sql.NVarChar, value: token },
           { name: 'ipAddress',  type: sql.NVarChar, value: ipAddress },
           { name: 'userAgent',  type: sql.NVarChar, value: userAgent },
-          { name: 'createdAt',  type: sql.DateTime, value: createdAt },
-          { name: 'expiresAt',  type: sql.DateTime, value: expiresAt },
+          { name: 'createdAt',  type: sql.DateTime,  value: createdAt },
+          { name: 'expiresAt',  type: sql.DateTime,  value: expiresAt },
         ]
       );
 
@@ -96,14 +97,12 @@ export const POST = csrfProtection(
         httpOnly: true,
         secure:   process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        expires:  expiresAt
+        expires:  expiresAt,
       });
 
       return response;
 
-
     } catch (err: unknown) {
-      // Narrow the error before logging
       if (err instanceof Error) {
         console.error('Login error:', err.message);
       } else {

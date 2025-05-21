@@ -1,8 +1,9 @@
 // app/api/auth/validate/route.ts
+export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies }                from 'next/headers';
-import { validateAuthToken }      from '../../../../lib/auth';
+import { cookies }                  from 'next/headers';
+import { validateAuthToken }        from '../../../../lib/auth';
 
 export async function POST(_request: NextRequest) {
   // 1️⃣ Grab the cookie jar (must await if your version returns a Promise)
