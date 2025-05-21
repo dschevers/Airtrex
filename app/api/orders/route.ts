@@ -1,4 +1,5 @@
 // app/api/orders/route.ts
+export const runtime = 'nodejs';
 
 import { NextResponse, NextRequest } from 'next/server';
 import { csrfProtection }        from '../../../lib/csrf-middleware';

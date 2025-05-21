@@ -1,20 +1,29 @@
-// next.config.ts
 import { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // externals so mssql/tedious never get bundled client-side
   serverExternalPackages: ['mssql', 'tedious'],
   bundlePagesRouterDependencies: true,
 
-  // ➊ Tell Webpack how to resolve `node:` imports
   webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.alias = {
-        ...(config.resolve.alias || {}),
-        'node:stream': 'stream',
-        'node:url':    'url',
-      };
+        console.log(
+      `[next.config.ts] webpack() called — isServer=${isServer}`
+    );
+    // 1️⃣ On the server build, treat mssql & tedious as externals so Webpack
+    //    leaves their `import "node:stream"` etc. to Node at runtime:
+    if (isServer) {
+      const existing = Array.isArray(config.externals)
+        ? config.externals
+        : [config.externals];
+      config.externals = [...existing, 'mssql', 'tedious'];
     }
+
+    // 2️⃣ Alias node: imports so if anything else pulls them in, Webpack can resolve:
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      'node:stream': 'stream',
+      'node:url':    'url',
+    };
+
     return config;
   },
 

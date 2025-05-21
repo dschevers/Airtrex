@@ -1,5 +1,7 @@
 // app/api/dropdowns/route.ts
 
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { executeQuery }          from '../../../lib/db';
 import { fallbackData }          from '../../../lib/fallbackData';
@@ -56,19 +58,16 @@ export const GET = withAuth(async (_req: NextRequest) => {
     ]);
 
     return NextResponse.json({
-      workOrders:  workOrdersRes.recordset,
-      requesters:  employeesRes.recordset,
-      locations:   locationsRes.recordset,
-      units:       unitsRes.recordset
+      workOrders: workOrdersRes.recordset,
+      requesters: employeesRes.recordset,
+      locations:  locationsRes.recordset,
+      units:      unitsRes.recordset
     });
   } catch (err: unknown) {
-    // Safely handle unknown errors
-    if (err instanceof Error) {
-      console.error('Error fetching dropdown options:', err.message);
-    } else {
-      console.error('Error fetching dropdown options (non-Error):', err);
-    }
-    // Fallback data on error
+    console.error(
+      'Error fetching dropdown options:',
+      err instanceof Error ? err.message : err
+    );
     return NextResponse.json(fallbackData, { status: 500 });
   }
 });
