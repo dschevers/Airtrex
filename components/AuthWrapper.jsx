@@ -19,33 +19,23 @@ export default function AuthWrapper({ children }) {
   }, []);
 
   // Logout handler
-const handleLogout = async () => {
-  try {
-    if (!csrfToken) {
-      console.error('CSRF token not available for logout');
-      return;
-    }
+  const handleLogout = async () => {
+    try {
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
 
-    const res = await fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': csrfToken,
-      },
-    });
-
-    if (res.ok) {
-      document.cookie = "airtrex-auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict";
-      router.push('/login');
-    } else {
-      const error = await res.json().catch(() => ({}));
-      console.error('Logout failed:', error);
+      if (res.ok) {
+        window.location.href = '/login';
+      } else {
+        console.error('Logout failed');
+      }
+    } catch (err) {
+      console.error('Logout error:', err);
     }
-  } catch (err) {
-    console.error('Logout error:', err);
-  }
-};
+  };
+
 
   return (
     <div>

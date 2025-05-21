@@ -32,26 +32,23 @@ export default function LoginForm() {
     fetchCsrfToken();
   }, []);
 
-    const handleLogout = async () => {
+  const handleLogout = async () => {
     try {
       const res = await fetch('/api/auth/logout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
 
-      const data = await res.json();
-      console.log('[LOGOUT]', res.status, data);
-
       if (res.ok) {
-        router.push('/login');
+        window.location.href = '/login';
       } else {
-        setError(data.error || 'Logout failed');
+        console.error('Logout failed');
       }
     } catch (err) {
-      console.error('Logout failed:', err);
-      setError('Logout error');
+      console.error('Logout error:', err);
     }
   };
+
 
 
   const handleSubmit = async (e) => {
