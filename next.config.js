@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Treat these server-only modules as externals, so webpack won't bundle node:stream/node:url
+  // Externalize node-only libraries so they are required at runtime instead of bundled
   serverExternalPackages: ['mssql', 'tedious'],
+  // If you also have pages (Pages Router), bundle everything then externalize these same packages
+  bundlePagesRouterDependencies: true,
 
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
