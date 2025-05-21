@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Externalize server-only packages to avoid webpack bundling node:stream / node:url
+  experimental: {
+    serverComponentsExternalPackages: ['mssql', 'tedious'],
+  },
 
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
@@ -33,6 +37,7 @@ const nextConfig = {
           }
         ]
       : [];
+
     return [
       {
         source: '/(.*)',
