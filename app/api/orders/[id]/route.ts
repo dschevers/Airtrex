@@ -29,20 +29,6 @@ export const GET = withAuth(
         { status: 400 }
       );
     }
-
-      // Get order header
-      const orderQuery = `
-        SELECT
-          po.PONumber,
-          po.WorkOrder,
-          po.PODate,
-          po.POStatus,
-          e.EmployeeName AS RequesterName
-        FROM PurchaseOrders po
-        LEFT JOIN EmployeesTemp e ON po.EmployeeID = e.EmployeeID
-        WHERE po.PONumber = @poNumber
-      `;
-
     try {
       const orderResult = await executeQuery<{
         PONumber: number;

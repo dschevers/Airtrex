@@ -1,3 +1,4 @@
+// next.config.ts
 import { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
@@ -5,27 +6,20 @@ const nextConfig: NextConfig = {
   bundlePagesRouterDependencies: true,
 
   webpack: (config, { isServer }) => {
-        console.log(
-      `[next.config.ts] webpack() called — isServer=${isServer}`
-    );
-    // 1️⃣ On the server build, treat mssql & tedious as externals so Webpack
-    //    leaves their `import "node:stream"` etc. to Node at runtime:
     if (isServer) {
       const existing = Array.isArray(config.externals)
         ? config.externals
         : [config.externals];
       config.externals = [...existing, 'mssql', 'tedious'];
     }
-
-    // 2️⃣ Alias node: imports so if anything else pulls them in, Webpack can resolve:
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       'node:stream': 'stream',
       'node:url':    'url',
     };
-
     return config;
   },
+
 
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
@@ -54,3 +48,9 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+
+
+
+
+

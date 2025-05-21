@@ -257,6 +257,7 @@ export default function AirtrexOrderForm(): ReactElement {
     });
     setActiveRows(1);
     setFormErrors({});
+    setShowConfirmCancel(false)
   };
 
   const confirmSubmit = async (): Promise<void> => {
@@ -433,7 +434,7 @@ export default function AirtrexOrderForm(): ReactElement {
               <button
                 onClick={initiateCancel}
                 disabled={isSubmitting}
-                className="flex-1 py-2 rounded border border-gray-300 airtrex-cancel-button"
+                className="flex-1 py-2 rounded border border-gray-300 text-gray-700 airtrex-cancel-button"
               >
                 Cancel
               </button>
@@ -602,7 +603,7 @@ export default function AirtrexOrderForm(): ReactElement {
               <button
                 onClick={initiateCancel}
                 disabled={isSubmitting}
-                className="flex-1 py-2 rounded border border-gray-300 airtrex-cancel-button"
+                className="flex-1 py-2 rounded border border-gray-300 text-gray-700 airtrex-cancel-button"
               >
                 Cancel
               </button>
@@ -640,10 +641,10 @@ export default function AirtrexOrderForm(): ReactElement {
       {showConfirmCancel && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow max-w-md w-full">
-            <h3 className="font-medium mb-4">Confirm Cancellation</h3>
-            <p className="mb-6">All changes will be lost. Continue?</p>
+            <h3 className="font-medium text-gray-700 mb-4">Confirm Cancellation</h3>
+            <p className="text-gray-700 mb-6">All changes will be lost. Continue?</p>
             <div className="flex justify-end space-x-3">
-              <button onClick={() => setShowConfirmCancel(false)} className="px-4 py-2 border rounded airtrex-cancel-button">
+              <button onClick={() => setShowConfirmCancel(false)} className="px-4 py-2 text-gray-700 border rounded airtrex-cancel-button">
                 No, Keep Editing
               </button>
               <button onClick={handleCancel} className="px-4 py-2 rounded bg-red-500 text-white">
