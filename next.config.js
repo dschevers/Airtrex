@@ -1,16 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    // Prevent bundling server-only modules into edge/client builds
-    serverComponentsExternalPackages: ['mssql', 'tedious'],
-  },
+  // opt out mssql/tedious from being bundled in Server Components & Route Handlers
+  serverExternalPackages: ['mssql', 'tedious'],  // :contentReference[oaicite:0]{index=0}
+
   webpack: (config, { isServer }) => {
     if (!isServer) {
-      // Alias Node.js core imports so Webpack resolves `node:` schemes
+      // allow Webpack to resolve `node:stream` & `node:url`
       config.resolve.alias = {
         ...(config.resolve.alias || {}),
         'node:stream': 'stream',
-        'node:url': 'url',
+        'node:url':    'url',
       };
     }
     return config;
