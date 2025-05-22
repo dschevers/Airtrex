@@ -46,11 +46,7 @@ jobs:
           # Prepare directories
           mkdir -p deploy/.next/{static,server}
 
-          # Copy compiled Next.js output
-          cp -r .next/static         deploy/.next/static
-          cp -r .next/server         deploy/.next/server
-          cp      .next/BUILD_ID     deploy/.next/BUILD_ID
-          cp      .next/required-server-files.json deploy/.next/required-server-files.json
+          cp -r .next deploy/.next
 
           # Copy your TS config so Next can load it
           cp next.config.ts deploy/
