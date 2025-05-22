@@ -80,6 +80,7 @@ export default function LoginForm(): ReactElement {
             alt="Airtrex Logo"
             width={120}
             height={120}
+            unoptimized
             className="mx-auto"
           />
           <p className="mt-2 text-sm text-gray-600">
