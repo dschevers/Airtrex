@@ -43,24 +43,18 @@ jobs:
 
       - name: 📂 Package for Azure deploy
         run: |
-          # Prepare directories
-          mkdir -p deploy/.next/{static,server}
+          # 1) Prepare a clean deploy directory
+          rm -rf deploy && mkdir deploy
 
-          cp -r .next deploy/.next
+          # 2) Copy the ENTIRE .next folder
+          cp -r .next deploy/
 
-          # Copy your TS config so Next can load it
-          cp next.config.ts deploy/
-
-          # Copy package files
+          # 3) Copy config, static assets, deps, startup script, etc.
+          cp next.config.ts        deploy/
           cp package.json package-lock.json deploy/
+          cp -r public             deploy/public
+          cp -a node_modules       deploy/node_modules
 
-          # Static assets
-          cp -r public deploy/public
-
-          # Runtime dependencies
-          cp -a node_modules deploy/node_modules
-
-          # Startup script
           cat > deploy/startup.sh << 'EOF'
           #!/bin/sh
           cd /home/site/wwwroot
@@ -69,7 +63,7 @@ jobs:
           EOF
           chmod +x deploy/startup.sh
 
-          # Zip it all up
+          # 4) Zip it up
           cd deploy
           zip -r ../release.zip .
           cd ..
