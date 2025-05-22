@@ -104,5 +104,5 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: airtrexrequests
-          package: .
+          package: ./release.zip
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_8F1A663139A6471BBB0B85FEBF386A29 }}
