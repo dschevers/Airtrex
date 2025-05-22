@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isValidSessionToken } from './session';
-
 /**
  * Result of authentication token validation.
  */

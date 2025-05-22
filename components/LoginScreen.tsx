@@ -3,86 +3,69 @@
 import React, {
   useState,
   useEffect,
-  ReactElement,
   ChangeEvent,
-  FormEvent
+  FormEvent,
+  ReactElement
 } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 export default function LoginForm(): ReactElement {
-  const [password, setPassword] = useState<string>('');
-  const [error, setError]         = useState<string>('');
-  const [loading, setLoading]     = useState<boolean>(false);
+  const [password, setPassword]   = useState('');
   const [csrfToken, setCsrfToken] = useState<string>('');
-  const router = useRouter();
+  const [error, setError]         = useState('');
+  const [loading, setLoading]     = useState(false);
+  const router                    = useRouter();
+
+  const enabledBg = 'bg-[#0033cc]'
+  const hoverBg   = 'hover:bg-[#009933]'
 
   // Fetch CSRF token on mount
   useEffect(() => {
-    async function fetchCsrf() {
-      try {
-        const res = await fetch('/api/auth/csrf', {
-          method: 'GET',
-          credentials: 'include'
-        });
+    fetch('/api/auth/csrf', {
+      method:      'GET',
+      credentials: 'include'
+    })
+      .then(res => {
         if (!res.ok) throw new Error('Failed to fetch CSRF token');
-        const data = (await res.json()) as { csrfToken: string };
+        return res.json();
+      })
+      .then((data: { csrfToken: string }) => {
         setCsrfToken(data.csrfToken);
-      } catch (err) {
-        console.error('Error fetching CSRF token:', err);
+      })
+      .catch(() => {
         setError('Security init failed. Please refresh.');
-      }
-    }
-    fetchCsrf();
-  }, []);
-  
-  // Logout handler
-  const handleLogout = async (): Promise<void> => {
-    try {
-      const res = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'X-CSRF-Token': csrfToken }
       });
-      if (res.ok) {
-        router.push('/login');
-      } else {
-        console.error('Logout failed');
-      }
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
-  };
+  }, []);
 
-  // Submit handler
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!csrfToken) {
       setError('Security token missing. Refresh the page.');
       return;
     }
+
     setLoading(true);
     setError('');
 
     try {
       const res = await fetch('/api/auth/login', {
-        method: 'POST',
+        method:      'POST',
         credentials: 'include',
         headers: {
           'Content-Type':  'application/json',
           'X-CSRF-Token':   csrfToken
         },
-        body: JSON.stringify({ password, csrfToken })
+        body: JSON.stringify({ password })
       });
-      const data = (await res.json()) as { error?: string };
+
       if (!res.ok) {
-        throw new Error(data.error ?? 'Login failed');
+        const { error } = await res.json();
+        throw new Error(error || 'Login failed');
       }
-      router.push('/');
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Login failed. Try again.';
-      console.error('Login error:', err);
-      setError(msg);
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -110,40 +93,32 @@ export default function LoginForm(): ReactElement {
           </div>
         )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm">
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setPassword(e.target.value)
-                }
-              />
-            </div>
-          </div>
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            value={password}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setPassword(e.target.value)
+            }
+            placeholder="Password"
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300"
+          />
 
-          <div className="mt-4 flex justify-end">
-            <button
-              type="submit"
-              disabled={loading || !csrfToken}
-              className={`group relative flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                loading || !csrfToken
-                  ? 'bg-blue-300 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 ml-auto`}
-            >
-              {loading ? 'Signing in…' : 'Sign in'}
-            </button>
-          </div>
+        <button
+          type="submit"
+          disabled={loading || !csrfToken}
+          className={`
+            w-full py-2 text-white rounded-md
+            ${loading || !csrfToken
+              ? 'bg-blue-300 cursor-not-allowed'
+              : `${enabledBg} ${hoverBg}`}
+          `}
+        >
+          {loading ? 'Signing in…' : 'Sign in'}
+        </button>
         </form>
       </div>
     </div>

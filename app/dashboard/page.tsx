@@ -81,7 +81,7 @@ export default function LandingPage() {
       alt="Airtrex Logo" 
       width={192}
       height={48}
-      className="h-auto mb-6" 
+      className="mx-auto mb-6" 
     />
   );
 

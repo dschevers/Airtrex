@@ -1,25 +1,20 @@
 // app/dashboard/layout.tsx
-import type { ReactNode } from 'react';
-import { cookies }        from 'next/headers';
-import { redirect }       from 'next/navigation';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { validateAuthToken } from '../../lib/auth';
 
-export const metadata = {
-  title: 'Dashboard',
-};
-
-export default async function DashboardLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('airtrex-auth-token')?.value ?? '';
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const store = await cookies();
+  const token = store.get('airtrex-auth-token')?.value;
+  if (!token) redirect('/login');
 
   const { valid } = await validateAuthToken(token);
-  if (!valid) {
-    redirect('/login');
-  }
+  if (!valid) redirect('/login');
 
-  return <>{children}</>;
+  // Authenticated → render your dashboard UI
+  return (
+    <div className="dashboard-layout">
+      {children}
+    </div>
+  );
 }

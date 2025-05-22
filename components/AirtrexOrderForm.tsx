@@ -622,11 +622,11 @@ export default function AirtrexOrderForm(): ReactElement {
       {/* Confirm Submission Modal */}
       {showConfirmSubmit && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow max-w-md w-full">
+          <div className="bg-white p-6 text-gray-700 rounded shadow max-w-md w-full">
             <h3 className="font-medium mb-4">Confirm Submission</h3>
             <p className="mb-6">Are you sure you want to submit?</p>
             <div className="flex justify-end space-x-3">
-              <button onClick={() => setShowConfirmSubmit(false)} className="px-4 py-2 border rounded airtrex-cancel-button">
+              <button onClick={() => setShowConfirmSubmit(false)} className="px-4 py-2 text-gray-700 border rounded airtrex-cancel-button">
                 Cancel
               </button>
               <button onClick={confirmSubmit} className="px-4 py-2 rounded airtrex-button">
