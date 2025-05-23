@@ -4,8 +4,10 @@ import React, {
   useState,
   useEffect,
   ChangeEvent,
+  FormEvent,
   ReactElement
 } from 'react';
+
 
 //
 // ─── TYPES ────────────────────────────────────────────────────────────────────
@@ -116,6 +118,8 @@ export default function AirtrexOrderForm(): ReactElement {
   const [isSubmitting, setIsSubmitting]           = useState<boolean>(false);
   const [submitSuccess, setSubmitSuccess]         = useState<boolean>(false);
   const [_isLoading, setIsLoading]                 = useState<boolean>(true);
+  const [submissionError, setSubmissionError] = useState<string>('');
+  const [error, setError]               = useState('');
   const [dropdownOptions, setDropdownOptions]     = useState<DropdownOptions>({
     workOrders:  [],
     requesters:  [],
@@ -257,17 +261,23 @@ export default function AirtrexOrderForm(): ReactElement {
     });
     setActiveRows(1);
     setFormErrors({});
-    setShowConfirmCancel(false)
+    setError('');               // ← clear the server/client error banner
+    setSubmissionError('');
+    setShowConfirmCancel(false);
   };
 
-  const confirmSubmit = async (): Promise<void> => {
-    setShowConfirmSubmit(false);
+  // Submit handler with client‐ and server‐side validation
+  const confirmSubmit = async (e: FormEvent): Promise<void> => {
+    e.preventDefault();
+    setSubmissionError('');
+
+    // 1) client-side validation
     if (!validateForm()) {
-      alert('Please fix the errors.');
+      setSubmissionError('Please fix the errors below.');
       return;
     }
-    setIsSubmitting(true);
 
+    setIsSubmitting(true);
     try {
       const submissionData = {
         workOrder:     sanitizeInput(formData.workOrder),
@@ -282,9 +292,9 @@ export default function AirtrexOrderForm(): ReactElement {
               partNumber:     sanitizeInput(it.partNumber),
               notes:          sanitizeInput(it.notes),
               requiredByDate: it.requiredByDate || null,
-              location:       loc ? loc.Location : '',
+              location:       loc?.Location ?? '',
               quantity:       Number(it.quantity) || 1,
-              unitOfMeasure:  uni ? uni.UnitOfMeasure : ''
+              unitOfMeasure:  uni?.UnitOfMeasure ?? ''
             };
           })
       };
@@ -293,35 +303,40 @@ export default function AirtrexOrderForm(): ReactElement {
         method:      'POST',
         credentials: 'include',
         headers:     {
-          'Content-Type':  'application/json',
-          'X-CSRF-Token':   csrfToken
+          'Content-Type': 'application/json',
+          'X-CSRF-Token':  csrfToken
         },
         body: JSON.stringify(submissionData)
       });
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(text);
+        throw new Error(text || 'Submission failed');
       }
 
       await res.json();
       setSubmitSuccess(true);
       handleCancel();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      alert('Submit error: ' + msg);
+    } catch (err: any) {
+      setSubmissionError(err.message || 'Unexpected error. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Cancel with confirmation
   const initiateCancel = (): void => {
     const hasData = Boolean(
       formData.workOrder ||
       formData.requesterName ||
       formData.lineItems.some(it =>
-        it.description || it.partNumber || it.notes ||
-        it.requiredByDate || it.locationID || it.quantity || it.unitID
+        it.description ||
+        it.partNumber ||
+        it.notes ||
+        it.requiredByDate ||
+        it.locationID ||
+        it.quantity ||
+        it.unitID
       )
     );
     if (hasData) setShowConfirmCancel(true);
@@ -332,7 +347,11 @@ export default function AirtrexOrderForm(): ReactElement {
     new Date().toISOString().slice(0, 10);
 
   const AirtrexLogo = (): ReactElement => (
-    <img src="/images/airtrex-logo.png" alt="Airtrex Logo" className="w-40 h-auto mx-auto mb-2" />
+    <img
+      src="/images/airtrex-logo.png"
+      alt="Airtrex Logo"
+      className="w-40 h-auto mx-auto mb-2"
+    />
   );
 
   return (
@@ -352,20 +371,34 @@ export default function AirtrexOrderForm(): ReactElement {
       {/* Header */}
       <div className="mb-4 text-center">
         <AirtrexLogo />
-        <h1 className="text-2xl font-bold" style={{ color: airtrexBlue }}>ORDER REQUEST FORM</h1>
+        <h1 className="text-2xl font-bold" style={{ color: airtrexBlue }}>
+          ORDER REQUEST FORM
+        </h1>
       </div>
 
       {/* Success banner */}
       {submitSuccess && (
         <div className="bg-green-100 border border-green-400 text-green-700 p-4 rounded mb-4">
           <strong>Success!</strong> Your request was submitted.
-          <button onClick={() => setSubmitSuccess(false)} className="ml-4 airtrex-button px-3 py-1">New Request</button>
+          <button
+            onClick={() => setSubmitSuccess(false)}
+            className="ml-4 airtrex-button px-3 py-1"
+          >
+            New Request
+          </button>
+        </div>
+      )}
+
+      {/* Top-level error banner */}
+      {submissionError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 p-4 rounded mb-4">
+          {submissionError}
         </div>
       )}
 
       {/* Form */}
       {!submitSuccess && (
-        <>
+        <form noValidate onSubmit={confirmSubmit}>
           {/* Top fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {/* Order Type */}
@@ -382,10 +415,16 @@ export default function AirtrexOrderForm(): ReactElement {
               >
                 <option value="">Select Type</option>
                 {dropdownOptions.workOrders.map(o => (
-                  <option key={o.WorkOrder} value={o.WorkOrder}>{o.WorkOrder}</option>
+                  <option key={o.WorkOrder} value={o.WorkOrder}>
+                    {o.WorkOrder}
+                  </option>
                 ))}
               </select>
-              {formErrors.workOrder && <p className="text-red-500 text-xs">{formErrors.workOrder}</p>}
+              {formErrors.workOrder && (
+                <p className="text-red-500 text-xs">
+                  {formErrors.workOrder}
+                </p>
+              )}
             </div>
 
             {/* Requester */}
@@ -402,10 +441,19 @@ export default function AirtrexOrderForm(): ReactElement {
               >
                 <option value="">Select Name</option>
                 {dropdownOptions.requesters.map(r => (
-                  <option key={r.EmployeeID} value={r.EmployeeName}>{r.EmployeeName}</option>
+                  <option
+                    key={r.EmployeeID}
+                    value={r.EmployeeName}
+                  >
+                    {r.EmployeeName}
+                  </option>
                 ))}
               </select>
-              {formErrors.requesterName && <p className="text-red-500 text-xs">{formErrors.requesterName}</p>}
+              {formErrors.requesterName && (
+                <p className="text-red-500 text-xs">
+                  {formErrors.requesterName}
+                </p>
+              )}
             </div>
 
             {/* Date */}
@@ -432,6 +480,7 @@ export default function AirtrexOrderForm(): ReactElement {
           {isFormUnlocked && (
             <div className="flex space-x-4 mb-6">
               <button
+                type="button"
                 onClick={initiateCancel}
                 disabled={isSubmitting}
                 className="flex-1 py-2 rounded border border-gray-300 text-gray-700 airtrex-cancel-button"
@@ -439,7 +488,7 @@ export default function AirtrexOrderForm(): ReactElement {
                 Cancel
               </button>
               <button
-                onClick={() => setShowConfirmSubmit(true)}
+                type="submit"
                 disabled={isSubmitting}
                 className="flex-1 py-2 rounded airtrex-button"
               >
@@ -449,175 +498,264 @@ export default function AirtrexOrderForm(): ReactElement {
           )}
 
           {/* Line items */}
-          {isFormUnlocked && formData.lineItems.map((item, idx) => {
-            const rowErrs = formErrors.lineItems?.[idx] || {};
-            const hasData = !!(
-              item.description ||
-              item.partNumber  ||
-              item.notes       ||
-              item.locationID  ||
-              item.quantity    ||
-              item.unitID
-            );
-            return (
-              <div key={idx} className="mb-6 p-4 bg-gray-50 border rounded relative">
-                {/* Delete button */}
-                {hasData && (
-                  <button
-                    onClick={() => {
-                      if (confirm(`Delete Item ${idx+1}?`)) {
-                        const copy = [...formData.lineItems];
-                        copy.splice(idx,1);
-                        if (!copy.length) {
-                          copy.push({
-                            description:'',partNumber:'',notes:'',requiredByDate:'',locationID:'',quantity:'',unitID:''
+          {isFormUnlocked &&
+            formData.lineItems.map((item, idx) => {
+              const rowErrs = formErrors.lineItems?.[idx] || {};
+              const hasData =
+                !!(
+                  item.description ||
+                  item.partNumber ||
+                  item.notes ||
+                  item.locationID ||
+                  item.quantity ||
+                  item.unitID
+                );
+              return (
+                <div
+                  key={idx}
+                  className="mb-6 p-4 bg-gray-50 border rounded relative"
+                >
+                  {/* Delete button */}
+                  {hasData && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          confirm(`Delete Item ${idx + 1}?`)
+                        ) {
+                          const copy = [
+                            ...formData.lineItems
+                          ];
+                          copy.splice(idx, 1);
+                          if (!copy.length) {
+                            copy.push({
+                              description: '',
+                              partNumber: '',
+                              notes: '',
+                              requiredByDate: '',
+                              locationID: '',
+                              quantity: '',
+                              unitID: ''
+                            });
+                          }
+                          setFormData({
+                            ...formData,
+                            lineItems: copy
                           });
+                          setActiveRows(r =>
+                            Math.max(1, r - 1)
+                          );
                         }
-                        setFormData({ ...formData, lineItems: copy });
-                        setActiveRows(r => Math.max(1, r-1));
-                      }
-                    }}
-                    className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white"
-                  >✕</button>
-                )}
-
-                <h2 className="font-semibold mb-3" style={{ color: airtrexGreen }}>
-                  Item {idx + 1}
-                </h2>
-
-                {/* Description & Part# */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  {/* Description */}
-                  <div>
-                    <label className="block mb-1">Description</label>
-                    <input
-                      type="text"
-                      name="description"
-                      value={item.description}
-                      onChange={e => handleChange(e, idx)}
-                      className={`w-full p-2 border ${rowErrs.description ? 'border-red-500' : 'border-gray-300'} rounded`}
-                      style={{ color: darkTextColor }}
-                    />
-                    {rowErrs.description && <p className="text-red-500 text-xs">{rowErrs.description}</p>}
-                  </div>
-                  {/* Part# */}
-                  <div>
-                    <label className="block mb-1">Part/Item Number</label>
-                    <input
-                      type="text"
-                      name="partNumber"
-                      value={item.partNumber}
-                      onChange={e => handleChange(e, idx)}
-                      className={`w-full p-2 border ${rowErrs.partNumber ? 'border-red-500' : 'border-gray-300'} rounded`}
-                      style={{ color: darkTextColor }}
-                    />
-                    {rowErrs.partNumber && <p className="text-red-500 text-xs">{rowErrs.partNumber}</p>}
-                  </div>
-                </div>
-
-                {/* Notes & Required Date */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block mb-1">Notes</label>
-                    <input
-                      type="text"
-                      name="notes"
-                      value={item.notes}
-                      onChange={e => handleChange(e, idx)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      style={{ color: darkTextColor }}
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1">Required by Date</label>
-                    <input
-                      type="date"
-                      name="requiredByDate"
-                      value={item.requiredByDate}
-                      onChange={e => handleChange(e, idx)}
-                      className="w-full p-2 border border-gray-300 rounded"
-                      style={{ color: darkTextColor }}
-                    />
-                  </div>
-                </div>
-
-                {/* Location & Quantity */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block mb-1">Location</label>
-                    <select
-                      name="locationID"
-                      value={item.locationID}
-                      onChange={e => handleChange(e, idx)}
-                      className={`w-full p-2 border ${rowErrs.locationID ? 'border-red-500' : 'border-gray-300'} rounded`}
-                      style={{ color: darkTextColor }}
+                      }}
+                      className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white"
                     >
-                      <option value="">Select Location</option>
-                      {dropdownOptions.locations.map(l => (
-                        <option key={l.LocationID} value={l.LocationID}>{l.Location}</option>
-                      ))}
-                    </select>
-                    {rowErrs.locationID && <p className="text-red-500 text-xs">{rowErrs.locationID}</p>}
+                      ✕
+                    </button>
+                  )}
+
+                  <h2
+                    className="font-semibold mb-3"
+                    style={{ color: airtrexGreen }}
+                  >
+                    Item {idx + 1}
+                  </h2>
+
+                  {/* Description & Part# */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    {/* Description */}
+                    <div>
+                      <label className="block mb-1">
+                        Description
+                      </label>
+                      <input
+                        type="text"
+                        name="description"
+                        value={item.description}
+                        onChange={e =>
+                          handleChange(e, idx)
+                        }
+                        className={`w-full p-2 border ${
+                          rowErrs.description
+                            ? 'border-red-500'
+                            : 'border-gray-300'
+                        } rounded`}
+                        style={{ color: darkTextColor }}
+                      />
+                      {rowErrs.description && (
+                        <p className="text-red-500 text-xs">
+                          {rowErrs.description}
+                        </p>
+                      )}
+                    </div>
+                    {/* Part# */}
+                    <div>
+                      <label className="block mb-1">
+                        Part/Item Number
+                      </label>
+                      <input
+                        type="text"
+                        name="partNumber"
+                        value={item.partNumber}
+                        onChange={e =>
+                          handleChange(e, idx)
+                        }
+                        className={`w-full p-2 border ${
+                          rowErrs.partNumber
+                            ? 'border-red-500'
+                            : 'border-gray-300'
+                        } rounded`}
+                        style={{ color: darkTextColor }}
+                      />
+                      {rowErrs.partNumber && (
+                        <p className="text-red-500 text-xs">
+                          {rowErrs.partNumber}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <label className="block mb-1">Quantity</label>
-                    <input
-                      type="number"
-                      name="quantity"
-                      value={item.quantity}
-                      onChange={e => handleChange(e, idx)}
-                      className={`w-full p-2 border ${rowErrs.quantity ? 'border-red-500' : 'border-gray-300'} rounded`}
-                      style={{ color: darkTextColor }}
-                      min={1}
-                    />
-                    {rowErrs.quantity && <p className="text-red-500 text-xs">{rowErrs.quantity}</p>}
+
+                  {/* Notes & Required Date */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block mb-1">
+                        Notes
+                      </label>
+                      <input
+                        type="text"
+                        name="notes"
+                        value={item.notes}
+                        onChange={e =>
+                          handleChange(e, idx)
+                        }
+                        className="w-full p-2 border border-gray-300 rounded"
+                        style={{ color: darkTextColor }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-1">
+                        Required by Date
+                      </label>
+                      <input
+                        type="date"
+                        name="requiredByDate"
+                        value={item.requiredByDate}
+                        onChange={e =>
+                          handleChange(e, idx)
+                        }
+                        className="w-full p-2 border border-gray-300 rounded"
+                        style={{ color: darkTextColor }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Location & Quantity */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block mb-1">
+                        Location
+                      </label>
+                      <select
+                        name="locationID"
+                        value={item.locationID}
+                        onChange={e =>
+                          handleChange(e, idx)
+                        }
+                        className={`w-full p-2 border ${
+                          rowErrs.locationID
+                            ? 'border-red-500'
+                            : 'border-gray-300'
+                        } rounded`}
+                        style={{ color: darkTextColor }}
+                      >
+                        <option value="">
+                          Select Location
+                        </option>
+                        {dropdownOptions.locations.map(l => (
+                          <option
+                            key={l.LocationID}
+                            value={l.LocationID}
+                          >
+                            {l.Location}
+                          </option>
+                        ))}
+                      </select>
+                      {rowErrs.locationID && (
+                        <p className="text-red-500 text-xs">
+                          {rowErrs.locationID}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block mb-1">
+                        Quantity
+                      </label>
+                      <input
+                        type="number"
+                        name="quantity"
+                        value={item.quantity}
+                        onChange={e =>
+                          handleChange(e, idx)
+                        }
+                        className={`w-full p-2 border ${
+                          rowErrs.quantity
+                            ? 'border-red-500'
+                            : 'border-gray-300'
+                        } rounded`}
+                        style={{ color: darkTextColor }}
+                        min={1}
+                      />
+                      {rowErrs.quantity && (
+                        <p className="text-red-500 text-xs">
+                          {rowErrs.quantity}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Unit of Measure */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block mb-1">
+                        Unit of Measure
+                      </label>
+                      <select
+                        name="unitID"
+                        value={item.unitID}
+                        onChange={e =>
+                          handleChange(e, idx)
+                        }
+                        className={`w-full p-2 border ${
+                          rowErrs.unitID
+                            ? 'border-red-500'
+                            : 'border-gray-300'
+                        } rounded`}
+                        style={{ color: darkTextColor }}
+                      >
+                        <option value="">
+                          Select Unit
+                        </option>
+                        {dropdownOptions.units.map(u => (
+                          <option
+                            key={u.UnitID}
+                            value={u.UnitID}
+                          >
+                            {u.UnitOfMeasure}
+                          </option>
+                        ))}
+                      </select>
+                      {rowErrs.unitID && (
+                        <p className="text-red-500 text-xs">
+                          {rowErrs.unitID}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                {/* Unit of Measure */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1">Unit of Measure</label>
-                    <select
-                      name="unitID"
-                      value={item.unitID}
-                      onChange={e => handleChange(e, idx)}
-                      className={`w-full p-2 border ${rowErrs.unitID ? 'border-red-500' : 'border-gray-300'} rounded`}
-                      style={{ color: darkTextColor }}
-                    >
-                      <option value="">Select Unit</option>
-                      {dropdownOptions.units.map(u => (
-                        <option key={u.UnitID} value={u.UnitID}>{u.UnitOfMeasure}</option>
-                      ))}
-                    </select>
-                    {rowErrs.unitID && <p className="text-red-500 text-xs">{rowErrs.unitID}</p>}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Buttons bottom */}
-          {isFormUnlocked && (
-            <div className="flex space-x-4">
-              <button
-                onClick={initiateCancel}
-                disabled={isSubmitting}
-                className="flex-1 py-2 rounded border border-gray-300 text-gray-700 airtrex-cancel-button"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setShowConfirmSubmit(true)}
-                disabled={isSubmitting}
-                className="flex-1 py-2 rounded airtrex-button"
-              >
-                {isSubmitting ? 'Processing…' : 'Submit'}
-              </button>
-            </div>
-          )}
-        </>
+              );
+            })}
+        </form>
       )}
+
 
       {/* Confirm Submission Modal */}
       {showConfirmSubmit && (

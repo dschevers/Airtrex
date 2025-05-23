@@ -20,6 +20,16 @@ export const POST = withAuth(
     const { isValid, errors } = validateOrderData(orderData);
     if (!isValid) {
       devLog('Validation failed:', errors);
+
+      // if the only error is “lineItems” (and it’s a string), return it as plain text
+      if (typeof errors.lineItems === 'string') {
+        return new NextResponse(errors.lineItems, {
+          status: 400,
+          headers: { 'Content-Type': 'text/plain' }
+        });
+      }
+
+      // otherwise fall back to the full JSON error payload
       return NextResponse.json(
         { error: 'Validation failed', errors },
         { status: 400 }
@@ -44,7 +54,7 @@ export const POST = withAuth(
       mechReq.input('submissionTime', sql.DateTime, now);
       mechReq.input('requestDate',    sql.Date,     now);
 
-      const mechResult = await mechReq.query< { ID: number }>(`
+      const mechResult = await mechReq.query<{ ID: number }>(`
         INSERT INTO Mechanic
           (MechanicName, WorkOrder, SubmissionTime, RequestDate)
         OUTPUT INSERTED.ID
