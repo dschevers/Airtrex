@@ -17,6 +17,8 @@ const MAX_LENGTH: Record<string, number> = {
   requesterName:  100,
   description:    255,
   partNumber:     100,
+  taskNumber:     100,  // Added taskNumber
+  notes:          500,  // Added notes to MAX_LENGTH
   location:       100,
   unitOfMeasure:  50,
 };
@@ -30,11 +32,14 @@ const MAX_QUANTITY = 10000;
 export interface OrderLineItem {
   description?: unknown;
   partNumber?: unknown;
+  taskNumber?: unknown;     // Added
   notes?: unknown;
   requiredByDate?: unknown;
   location?: unknown;
   quantity?: unknown;
   unitOfMeasure?: unknown;
+  fromStock?: unknown;      // Added
+  noAlternates?: unknown;   // Added
   [key: string]: unknown;
 }
 
@@ -99,24 +104,31 @@ export function validateOrderData(
     items.forEach((itemRaw, i) => {
       const errs: Record<string, string> = {};
       const item = itemRaw as OrderLineItem;
-      // Allowed keys on each item
+      
+      // Allowed keys on each item - added new fields
       const ALLOWED = [
         'description',
         'partNumber',
+        'taskNumber',     // Added
         'notes',
         'requiredByDate',
         'location',
         'quantity',
         'unitOfMeasure',
+        'fromStock',      // Added
+        'noAlternates',   // Added
       ];
+      
       Object.keys(item).forEach((k) => {
         if (!ALLOWED.includes(k)) errs[k] = 'Unexpected field';
       });
+      
       // Skip fully empty rows
       if (!item.description && !item.partNumber && item.quantity == null) {
         return;
       }
-      // Validate string fields
+      
+      // Validate required string fields
       ['description', 'partNumber', 'location', 'unitOfMeasure'].forEach((fld) => {
         const val = item[fld];
         if (typeof val !== 'string' || !val.trim()) {
@@ -125,6 +137,23 @@ export function validateOrderData(
           errs[fld] = `${fld} must be under ${MAX_LENGTH[fld]} chars`;
         }
       });
+      
+      // Validate optional string fields - taskNumber and notes
+      ['taskNumber', 'notes'].forEach((fld) => {
+        const val = item[fld];
+        if (val != null && typeof val === 'string' && val.length > (MAX_LENGTH[fld] || 0)) {
+          errs[fld] = `${fld} must be under ${MAX_LENGTH[fld]} chars`;
+        }
+      });
+      
+      // Validate boolean fields
+      ['fromStock', 'noAlternates'].forEach((fld) => {
+        const val = item[fld];
+        if (val != null && typeof val !== 'boolean') {
+          errs[fld] = `${fld} must be a boolean value`;
+        }
+      });
+      
       // Validate quantity
       const qty = item.quantity;
       if (
@@ -136,6 +165,7 @@ export function validateOrderData(
       ) {
         errs.quantity = `Quantity must be integer 1–${MAX_QUANTITY}`;
       }
+      
       if (Object.keys(errs).length) {
         itemErrors[i] = errs;
       }
@@ -157,11 +187,14 @@ export function validateOrderData(
 export interface SanitizedLineItem {
   partNumber: string;
   description: string;
+  taskNumber: string;         // Added
   notes: string;
   requiredByDate: string | null;
   location: string;
   quantity: number;
   unitOfMeasure: string;
+  fromStock: boolean;         // Added
+  noAlternates: boolean;      // Added
 }
 
 /**
@@ -200,13 +233,16 @@ export function sanitizeOrderData(
         return {
           partNumber: sanitizeInput(item.partNumber as string),
           description: sanitizeInput(item.description as string),
-          notes: sanitizeInput(item.notes as string),
+          taskNumber: sanitizeInput((item.taskNumber as string) || ''),     // Added
+          notes: sanitizeInput((item.notes as string) || ''),
           requiredByDate: isNaN(date.getTime())
             ? null
             : date.toISOString().split('T')[0],
           location: sanitizeInput(item.location as string),
           quantity: Number(item.quantity),
           unitOfMeasure: sanitizeInput(item.unitOfMeasure as string),
+          fromStock: Boolean(item.fromStock),                               // Added
+          noAlternates: Boolean(item.noAlternates),                         // Added
         };
       }),
   };

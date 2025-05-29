@@ -21,11 +21,14 @@ interface Unit      { UnitID: number; UnitOfMeasure: string; }
 interface LineItem {
   description:     string;
   partNumber:      string;
+  taskNumber:      string;
   notes:           string;
   requiredByDate:  string;
   locationID:      string;
   quantity:        string;
   unitID:          string;
+  fromStock:       boolean;
+  noAlternates:    boolean;
 }
 
 interface FormData {
@@ -102,16 +105,20 @@ export default function AirtrexOrderForm(): ReactElement {
       {
         description:    '',
         partNumber:     '',
+        taskNumber:     '',
         notes:          '',
         requiredByDate: '',
         locationID:     '',
         quantity:       '',
-        unitID:         ''
+        unitID:         '',
+        fromStock:      false,
+        noAlternates:   false
       }
     ]
   });
   const [showConfirmSubmit, setShowConfirmSubmit] = useState<boolean>(false);
   const [csrfToken, setCsrfToken]                 = useState<string>('');
+  const [deleteIdx, setDeleteIdx]         = useState<number|null>(null);
   const [showConfirmCancel, setShowConfirmCancel] = useState<boolean>(false);
   const [_activeRows, setActiveRows]               = useState<number>(1);
   const [formErrors, setFormErrors]               = useState<FormErrors>({});
@@ -171,6 +178,7 @@ export default function AirtrexOrderForm(): ReactElement {
     const started = Boolean(
       last.description ||
       last.partNumber  ||
+      last.taskNumber  ||
       last.notes       ||
       last.locationID  ||
       last.quantity    ||
@@ -179,6 +187,7 @@ export default function AirtrexOrderForm(): ReactElement {
     const emptyRows = formData.lineItems.filter(item =>
       !item.description &&
       !item.partNumber  &&
+      !item.taskNumber  &&
       !item.locationID  &&
       !item.quantity    &&
       !item.unitID
@@ -192,11 +201,14 @@ export default function AirtrexOrderForm(): ReactElement {
           {
             description:    '',
             partNumber:     '',
+            taskNumber:     '',
             notes:          '',
             requiredByDate: '',
             locationID:     '',
             quantity:       '',
-            unitID:         ''
+            unitID:         '',
+            fromStock:      false,
+            noAlternates:   false
           }
         ]
       }));
@@ -209,10 +221,16 @@ export default function AirtrexOrderForm(): ReactElement {
     e: ChangeEvent<HTMLInputElement|HTMLSelectElement>,
     index?: number
   ): void => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    
     if (index != null) {
       const items = [...formData.lineItems];
-      items[index] = { ...items[index], [name]: value };
+      if (type === 'checkbox') {
+        items[index] = { ...items[index], [name]: checked };
+      } else {
+        items[index] = { ...items[index], [name]: value };
+      }
       setFormData({ ...formData, lineItems: items });
     } else {
       setFormData({ ...formData, [name]: value } as FormData);
@@ -256,7 +274,18 @@ export default function AirtrexOrderForm(): ReactElement {
       workOrder:     '',
       requesterName: '',
       lineItems: [
-        { description:'', partNumber:'', notes:'', requiredByDate:'', locationID:'', quantity:'', unitID:'' }
+        { 
+          description:'', 
+          partNumber:'', 
+          taskNumber:'',
+          notes:'', 
+          requiredByDate:'', 
+          locationID:'', 
+          quantity:'', 
+          unitID:'',
+          fromStock: false,
+          noAlternates: false
+        }
       ]
     });
     setActiveRows(1);
@@ -266,17 +295,49 @@ export default function AirtrexOrderForm(): ReactElement {
     setShowConfirmCancel(false);
   };
 
+  const confirmDelete = (idx: number) => {
+    const copy = [...formData.lineItems];
+    copy.splice(idx, 1);
+    if (!copy.length) {
+      copy.push({
+        description:    '',
+        partNumber:     '',
+        taskNumber:     '',
+        notes:          '',
+        requiredByDate: '',
+        locationID:     '',
+        quantity:       '',
+        unitID:         '',
+        fromStock:      false,
+        noAlternates:   false
+      });
+    }
+    setFormData({ ...formData, lineItems: copy });
+    setActiveRows(r => Math.max(1, r - 1));
+    setDeleteIdx(null);
+  };
+
+  const initiateSubmit = (e: FormEvent) => {
+  e.preventDefault();
+  if (!validateForm()) {
+    setSubmissionError('Please fix the errors below.');
+    return;
+  }
+  setShowConfirmSubmit(true);
+};
+
   // Submit handler with client‐ and server‐side validation
   const confirmSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setSubmissionError('');
+    
 
     // 1) client-side validation
     if (!validateForm()) {
       setSubmissionError('Please fix the errors below.');
       return;
     }
-
+    
     setIsSubmitting(true);
     try {
       const submissionData = {
@@ -290,11 +351,14 @@ export default function AirtrexOrderForm(): ReactElement {
             return {
               description:    sanitizeInput(it.description),
               partNumber:     sanitizeInput(it.partNumber),
+              taskNumber:     sanitizeInput(it.taskNumber),
               notes:          sanitizeInput(it.notes),
               requiredByDate: it.requiredByDate || null,
               location:       loc?.Location ?? '',
               quantity:       Number(it.quantity) || 1,
-              unitOfMeasure:  uni?.UnitOfMeasure ?? ''
+              unitOfMeasure:  uni?.UnitOfMeasure ?? '',
+              fromStock:      it.fromStock,
+              noAlternates:   it.noAlternates
             };
           })
       };
@@ -314,6 +378,10 @@ export default function AirtrexOrderForm(): ReactElement {
         throw new Error(text || 'Submission failed');
       }
 
+      // 3) on success, close the confirm modal
+      setShowConfirmSubmit(false);
+      setSubmitSuccess(true);
+
       await res.json();
       setSubmitSuccess(true);
       handleCancel();
@@ -332,11 +400,14 @@ export default function AirtrexOrderForm(): ReactElement {
       formData.lineItems.some(it =>
         it.description ||
         it.partNumber ||
+        it.taskNumber ||
         it.notes ||
         it.requiredByDate ||
         it.locationID ||
         it.quantity ||
-        it.unitID
+        it.unitID ||
+        it.fromStock ||
+        it.noAlternates
       )
     );
     if (hasData) setShowConfirmCancel(true);
@@ -398,7 +469,7 @@ export default function AirtrexOrderForm(): ReactElement {
 
       {/* Form */}
       {!submitSuccess && (
-        <form noValidate onSubmit={confirmSubmit}>
+        <form noValidate onSubmit={initiateSubmit}>
           {/* Top fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {/* Order Type */}
@@ -407,7 +478,7 @@ export default function AirtrexOrderForm(): ReactElement {
               <select
                 name="workOrder"
                 value={formData.workOrder}
-                onChange={e => handleChange(e)}
+                onChange={handleChange}
                 className={`w-full p-2 border ${
                   formErrors.workOrder ? 'border-red-500' : 'border-gray-300'
                 } rounded`}
@@ -421,9 +492,7 @@ export default function AirtrexOrderForm(): ReactElement {
                 ))}
               </select>
               {formErrors.workOrder && (
-                <p className="text-red-500 text-xs">
-                  {formErrors.workOrder}
-                </p>
+                <p className="text-red-500 text-xs">{formErrors.workOrder}</p>
               )}
             </div>
 
@@ -433,7 +502,7 @@ export default function AirtrexOrderForm(): ReactElement {
               <select
                 name="requesterName"
                 value={formData.requesterName}
-                onChange={e => handleChange(e)}
+                onChange={handleChange}
                 className={`w-full p-2 border ${
                   formErrors.requesterName ? 'border-red-500' : 'border-gray-300'
                 } rounded`}
@@ -441,18 +510,13 @@ export default function AirtrexOrderForm(): ReactElement {
               >
                 <option value="">Select Name</option>
                 {dropdownOptions.requesters.map(r => (
-                  <option
-                    key={r.EmployeeID}
-                    value={r.EmployeeName}
-                  >
+                  <option key={r.EmployeeID} value={r.EmployeeName}>
                     {r.EmployeeName}
                   </option>
                 ))}
               </select>
               {formErrors.requesterName && (
-                <p className="text-red-500 text-xs">
-                  {formErrors.requesterName}
-                </p>
+                <p className="text-red-500 text-xs">{formErrors.requesterName}</p>
               )}
             </div>
 
@@ -505,10 +569,13 @@ export default function AirtrexOrderForm(): ReactElement {
                 !!(
                   item.description ||
                   item.partNumber ||
+                  item.taskNumber ||
                   item.notes ||
                   item.locationID ||
                   item.quantity ||
-                  item.unitID
+                  item.unitID ||
+                  item.fromStock ||
+                  item.noAlternates
                 );
               return (
                 <div
@@ -519,235 +586,202 @@ export default function AirtrexOrderForm(): ReactElement {
                   {hasData && (
                     <button
                       type="button"
-                      onClick={() => {
-                        if (
-                          confirm(`Delete Item ${idx + 1}?`)
-                        ) {
-                          const copy = [
-                            ...formData.lineItems
-                          ];
-                          copy.splice(idx, 1);
-                          if (!copy.length) {
-                            copy.push({
-                              description: '',
-                              partNumber: '',
-                              notes: '',
-                              requiredByDate: '',
-                              locationID: '',
-                              quantity: '',
-                              unitID: ''
-                            });
-                          }
-                          setFormData({
-                            ...formData,
-                            lineItems: copy
-                          });
-                          setActiveRows(r =>
-                            Math.max(1, r - 1)
-                          );
-                        }
-                      }}
+                      onClick={() => setDeleteIdx(idx)}
                       className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white"
                     >
                       ✕
                     </button>
                   )}
 
-                  <h2
-                    className="font-semibold mb-3"
-                    style={{ color: airtrexGreen }}
-                  >
+                  {deleteIdx !== null && (
+                    <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+                      <div className="bg-white text-gray-700 rounded-lg p-6 shadow-lg max-w-sm w-full">
+                        <p className="mb-6">Delete Item {deleteIdx + 1}?</p>
+                        <div className="flex justify-end space-x-3">
+                          <button
+                            onClick={() => setDeleteIdx(null)}
+                            className="px-4 py-2 border rounded airtrex-cancel-button"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => confirmDelete(deleteIdx!)}
+                            className="px-4 py-2 bg-red-500 text-white rounded"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <h2 className="font-semibold mb-3" style={{ color: airtrexGreen }}>
                     Item {idx + 1}
                   </h2>
 
                   {/* Description & Part# */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                    {/* Description */}
                     <div>
-                      <label className="block mb-1">
-                        Description
-                      </label>
+                      <label className="block mb-1">Description</label>
                       <input
                         type="text"
                         name="description"
                         value={item.description}
-                        onChange={e =>
-                          handleChange(e, idx)
-                        }
+                        onChange={e => handleChange(e, idx)}
                         className={`w-full p-2 border ${
-                          rowErrs.description
-                            ? 'border-red-500'
-                            : 'border-gray-300'
+                          rowErrs.description ? 'border-red-500' : 'border-gray-300'
                         } rounded`}
                         style={{ color: darkTextColor }}
                       />
                       {rowErrs.description && (
-                        <p className="text-red-500 text-xs">
-                          {rowErrs.description}
-                        </p>
+                        <p className="text-red-500 text-xs">{rowErrs.description}</p>
                       )}
                     </div>
-                    {/* Part# */}
                     <div>
-                      <label className="block mb-1">
-                        Part/Item Number
-                      </label>
+                      <label className="block mb-1">Part/Item Number</label>
                       <input
                         type="text"
                         name="partNumber"
                         value={item.partNumber}
-                        onChange={e =>
-                          handleChange(e, idx)
-                        }
+                        onChange={e => handleChange(e, idx)}
                         className={`w-full p-2 border ${
-                          rowErrs.partNumber
-                            ? 'border-red-500'
-                            : 'border-gray-300'
+                          rowErrs.partNumber ? 'border-red-500' : 'border-gray-300'
                         } rounded`}
                         style={{ color: darkTextColor }}
                       />
                       {rowErrs.partNumber && (
-                        <p className="text-red-500 text-xs">
-                          {rowErrs.partNumber}
-                        </p>
+                        <p className="text-red-500 text-xs">{rowErrs.partNumber}</p>
                       )}
                     </div>
                   </div>
 
-                  {/* Notes & Required Date */}
+                  {/* Task Number & Notes */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <label className="block mb-1">
-                        Notes
-                      </label>
+                      <label className="block mb-1">Task Number</label>
                       <input
                         type="text"
-                        name="notes"
-                        value={item.notes}
-                        onChange={e =>
-                          handleChange(e, idx)
-                        }
+                        name="taskNumber"
+                        value={item.taskNumber}
+                        onChange={e => handleChange(e, idx)}
                         className="w-full p-2 border border-gray-300 rounded"
                         style={{ color: darkTextColor }}
                       />
                     </div>
                     <div>
-                      <label className="block mb-1">
-                        Required by Date
-                      </label>
+                      <label className="block mb-1">Notes</label>
                       <input
-                        type="date"
-                        name="requiredByDate"
-                        value={item.requiredByDate}
-                        onChange={e =>
-                          handleChange(e, idx)
-                        }
+                        type="text"
+                        name="notes"
+                        value={item.notes}
+                        onChange={e => handleChange(e, idx)}
                         className="w-full p-2 border border-gray-300 rounded"
                         style={{ color: darkTextColor }}
                       />
                     </div>
                   </div>
 
-                  {/* Location & Quantity */}
+                  {/* Date & Location */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <label className="block mb-1">
-                        Location
-                      </label>
+                      <label className="block mb-1">Required by Date</label>
+                      <input
+                        type="date"
+                        name="requiredByDate"
+                        value={item.requiredByDate}
+                        onChange={e => handleChange(e, idx)}
+                        className="w-full p-2 border border-gray-300 rounded"
+                        style={{ color: darkTextColor }}
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-1">Location</label>
                       <select
                         name="locationID"
                         value={item.locationID}
-                        onChange={e =>
-                          handleChange(e, idx)
-                        }
+                        onChange={e => handleChange(e, idx)}
                         className={`w-full p-2 border ${
-                          rowErrs.locationID
-                            ? 'border-red-500'
-                            : 'border-gray-300'
+                          rowErrs.locationID ? 'border-red-500' : 'border-gray-300'
                         } rounded`}
                         style={{ color: darkTextColor }}
                       >
-                        <option value="">
-                          Select Location
-                        </option>
+                        <option value="">Select Location</option>
                         {dropdownOptions.locations.map(l => (
-                          <option
-                            key={l.LocationID}
-                            value={l.LocationID}
-                          >
+                          <option key={l.LocationID} value={l.LocationID}>
                             {l.Location}
                           </option>
                         ))}
                       </select>
                       {rowErrs.locationID && (
-                        <p className="text-red-500 text-xs">
-                          {rowErrs.locationID}
-                        </p>
+                        <p className="text-red-500 text-xs">{rowErrs.locationID}</p>
                       )}
                     </div>
+                  </div>
+
+                  {/* Quantity & Unit of Measure */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <label className="block mb-1">
-                        Quantity
-                      </label>
+                      <label className="block mb-1">Quantity</label>
                       <input
                         type="number"
                         name="quantity"
                         value={item.quantity}
-                        onChange={e =>
-                          handleChange(e, idx)
-                        }
+                        onChange={e => handleChange(e, idx)}
                         className={`w-full p-2 border ${
-                          rowErrs.quantity
-                            ? 'border-red-500'
-                            : 'border-gray-300'
+                          rowErrs.quantity ? 'border-red-500' : 'border-gray-300'
                         } rounded`}
                         style={{ color: darkTextColor }}
                         min={1}
                       />
                       {rowErrs.quantity && (
-                        <p className="text-red-500 text-xs">
-                          {rowErrs.quantity}
-                        </p>
+                        <p className="text-red-500 text-xs">{rowErrs.quantity}</p>
                       )}
                     </div>
-                  </div>
-
-                  {/* Unit of Measure */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block mb-1">
-                        Unit of Measure
-                      </label>
+                      <label className="block mb-1">Unit of Measure</label>
                       <select
                         name="unitID"
                         value={item.unitID}
-                        onChange={e =>
-                          handleChange(e, idx)
-                        }
+                        onChange={e => handleChange(e, idx)}
                         className={`w-full p-2 border ${
-                          rowErrs.unitID
-                            ? 'border-red-500'
-                            : 'border-gray-300'
+                          rowErrs.unitID ? 'border-red-500' : 'border-gray-300'
                         } rounded`}
                         style={{ color: darkTextColor }}
                       >
-                        <option value="">
-                          Select Unit
-                        </option>
+                        <option value="">Select Unit</option>
                         {dropdownOptions.units.map(u => (
-                          <option
-                            key={u.UnitID}
-                            value={u.UnitID}
-                          >
+                          <option key={u.UnitID} value={u.UnitID}>
                             {u.UnitOfMeasure}
                           </option>
                         ))}
                       </select>
                       {rowErrs.unitID && (
-                        <p className="text-red-500 text-xs">
-                          {rowErrs.unitID}
-                        </p>
+                        <p className="text-red-500 text-xs">{rowErrs.unitID}</p>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Checkboxes */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="fromStock"
+                        checked={item.fromStock}
+                        onChange={e => handleChange(e, idx)}
+                        className="mr-2"
+                      />
+                      <label className="text-sm">From Stock</label>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="noAlternates"
+                        checked={item.noAlternates}
+                        onChange={e => handleChange(e, idx)}
+                        className="mr-2"
+                      />
+                      <label className="text-sm">No Alternates</label>
                     </div>
                   </div>
                 </div>
@@ -756,18 +790,23 @@ export default function AirtrexOrderForm(): ReactElement {
         </form>
       )}
 
-
       {/* Confirm Submission Modal */}
       {showConfirmSubmit && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/20 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 text-gray-700 rounded shadow max-w-md w-full">
             <h3 className="font-medium mb-4">Confirm Submission</h3>
             <p className="mb-6">Are you sure you want to submit?</p>
             <div className="flex justify-end space-x-3">
-              <button onClick={() => setShowConfirmSubmit(false)} className="px-4 py-2 text-gray-700 border rounded airtrex-cancel-button">
+              <button
+                onClick={() => setShowConfirmSubmit(false)}
+                className="px-4 py-2 text-gray-700 border rounded airtrex-cancel-button"
+              >
                 Cancel
               </button>
-              <button onClick={confirmSubmit} className="px-4 py-2 rounded airtrex-button">
+              <button
+                onClick={confirmSubmit}
+                className="px-4 py-2 rounded airtrex-button"
+              >
                 Submit
               </button>
             </div>
@@ -777,15 +816,21 @@ export default function AirtrexOrderForm(): ReactElement {
 
       {/* Confirm Cancel Modal */}
       {showConfirmCancel && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/20 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow max-w-md w-full">
             <h3 className="font-medium text-gray-700 mb-4">Confirm Cancellation</h3>
             <p className="text-gray-700 mb-6">All changes will be lost. Continue?</p>
             <div className="flex justify-end space-x-3">
-              <button onClick={() => setShowConfirmCancel(false)} className="px-4 py-2 text-gray-700 border rounded airtrex-cancel-button">
+              <button
+                onClick={() => setShowConfirmCancel(false)}
+                className="px-4 py-2 text-gray-700 border rounded airtrex-cancel-button"
+              >
                 No, Keep Editing
               </button>
-              <button onClick={handleCancel} className="px-4 py-2 rounded bg-red-500 text-white">
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 rounded bg-red-500 text-white"
+              >
                 Yes, Cancel
               </button>
             </div>
@@ -794,4 +839,5 @@ export default function AirtrexOrderForm(): ReactElement {
       )}
     </div>
   );
+
 }

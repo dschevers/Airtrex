@@ -60,21 +60,27 @@ export const GET = withAuth(
         PartID: number;
         PartNumber: string;
         Description: string;
+        TaskNumber: string;      // Added
         Notes: string;
         RequiredByDate: Date;
         Location: string;
         Quantity: number;
         UnitOfMeasure: string;
+        FromStock: boolean;      // Added
+        NoAlternates: boolean;   // Added
       }>(
         `SELECT
            PartID,
            PartNumber,
            PartDescription AS Description,
+           TaskNumber,
            Notes,
            DateRequired AS RequiredByDate,
            Location,
            Quantity,
-           UnitOfMeasure
+           UnitOfMeasure,
+           FromStock,
+           NoAlternates
          FROM Parts
          WHERE PONumber = @poNumber`,
         [{ name: 'poNumber', type: sql.Int, value: idNum }]

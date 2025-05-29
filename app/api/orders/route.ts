@@ -21,7 +21,7 @@ export const POST = withAuth(
     if (!isValid) {
       devLog('Validation failed:', errors);
 
-      // if the only error is “lineItems” (and it’s a string), return it as plain text
+      // if the only error is "lineItems" (and it's a string), return it as plain text
       if (typeof errors.lineItems === 'string') {
         return new NextResponse(errors.lineItems, {
           status: 400,
@@ -70,6 +70,7 @@ export const POST = withAuth(
         const p = pool.request();
         p.input('partNumber',      sql.NVarChar, item.partNumber);
         p.input('partDescription', sql.NVarChar, item.description);
+        p.input('taskNumber',      sql.NVarChar, item.taskNumber);        // Added
         p.input('quantity',        sql.Int,      item.quantity);
         p.input('dateRequired',    sql.Date,     item.requiredByDate ?? now);
         p.input('mechKey',         sql.Int,      mechanicId);
@@ -77,14 +78,16 @@ export const POST = withAuth(
         p.input('notes',           sql.NVarChar, item.notes);
         p.input('location',        sql.NVarChar, item.location);
         p.input('unitOfMeasure',   sql.NVarChar, item.unitOfMeasure);
+        p.input('fromStock',       sql.Bit,      item.fromStock);          // Added
+        p.input('noAlternates',    sql.Bit,      item.noAlternates);       // Added
 
         await p.query(`
           INSERT INTO Parts
-            (PartNumber, PartDescription, Quantity, DateRequired,
-             MechKey, OrderDate, Notes, UnitOfMeasure, Location)
+            (PartNumber, PartDescription, TaskNumber, Quantity, DateRequired,
+             MechKey, OrderDate, Notes, UnitOfMeasure, Location, FromStock, NoAlternates)
           VALUES
-            (@partNumber, @partDescription, @quantity, @dateRequired,
-             @mechKey, @orderDate, @notes, @unitOfMeasure, @location)
+            (@partNumber, @partDescription, @taskNumber, @quantity, @dateRequired,
+             @mechKey, @orderDate, @notes, @unitOfMeasure, @location, @fromStock, @noAlternates)
         `);
 
         insertedItems.push({
@@ -138,12 +141,15 @@ export const GET = withAuth(async (_request: NextRequest) => {
       OrderID:        number;
       PartNumber:     string;
       PartDescription:string;
+      TaskNumber:     string;    // Added
       Quantity:       number;
       DateRequired:   Date;
       OrderDate:      Date;
       Notes:          string;
       UnitOfMeasure:  string;
       Location:       string;
+      FromStock:      boolean;   // Added
+      NoAlternates:   boolean;   // Added
     }>(`
       SELECT
         m.ID            AS MechanicID,
@@ -154,12 +160,15 @@ export const GET = withAuth(async (_request: NextRequest) => {
         p.OrderID,
         p.PartNumber,
         p.PartDescription,
+        p.TaskNumber,
         p.Quantity,
         p.DateRequired,
         p.OrderDate,
         p.Notes,
         p.UnitOfMeasure,
-        p.Location
+        p.Location,
+        p.FromStock,
+        p.NoAlternates
       FROM Mechanic m
       LEFT JOIN Parts p ON m.ID = p.MechKey
       ORDER BY m.SubmissionTime DESC, p.OrderID DESC
