@@ -68,7 +68,7 @@ export default function WorkOrderDrawer() {
       {/* Overlay + slide‐in panel */}
       <div
         className={`
-          fixed inset-0 z-50 transition-opacity
+          fixed inset-0 z-60 transition-opacity
           ${open ? "opacity-100" : "opacity-0 pointer-events-none"}
         `}
       >
