@@ -21,14 +21,12 @@ interface RawComponentRow {
   NewSerial: string | null;
   Ordered: boolean | null;
   Received: boolean | null;
+  CoreReturned: boolean | null;
   DateRequired: string | null;
-  Price: number | null;
   ServiceNeeded: string | null;
   Notes: string | null;
-  Billbacks: number | null;
   PONumber: number | null;
   Vendor: string | null;
-  ServiceableAcceptable: boolean | null;
 }
 
 type ComponentSortKey =
@@ -39,12 +37,10 @@ type ComponentSortKey =
   | 'Notes'
   | 'NewSerial'
   | 'Vendor'
-  | 'Price'
-  | 'Billbacks'
   | 'PONumber'
   | 'Ordered'
   | 'Received'
-  | 'ServiceableAcceptable'
+  | 'CoreReturned'
   | 'MechanicName'
   | 'WorkOrder'
   | 'DateRequired'
@@ -89,10 +85,6 @@ export default function ComponentsPage() {
         return (row.NewSerial ?? '').toLowerCase();
       case 'Vendor':
         return (row.Vendor ?? '').toLowerCase();
-      case 'Price':
-        return row.Price ?? 0;
-      case 'Billbacks':
-        return row.Billbacks ?? 0;
       case 'PONumber':
         return row.PONumber ?? 0;
       case 'Ordered':
@@ -107,10 +99,10 @@ export default function ComponentsPage() {
           : row.Received
           ? 1
           : 0;
-      case 'ServiceableAcceptable':
-        return row.ServiceableAcceptable === null
+      case 'CoreReturned':
+        return row.CoreReturned === null
           ? -1
-          : row.ServiceableAcceptable
+          : row.CoreReturned
           ? 1
           : 0;
       case 'MechanicName':
@@ -356,77 +348,85 @@ export default function ComponentsPage() {
               <thead className="bg-gray-100 sticky top-0 z-10">
                 <tr>
                   {[
+                    // 1. Part Number
                     {
-                      label: 'PartNumber',
+                      label: 'Part Number',
                       key: 'PartNumber' as ComponentSortKey,
                     },
+                    // 2. Description
                     {
                       label: 'Description',
-                      key:
-                        'PartDescription' as ComponentSortKey,
+                      key: 'PartDescription' as ComponentSortKey,
                     },
+                    // 3. Service Needed
                     {
-                      label: 'ServiceNeeded',
+                      label: 'Service Needed',
                       key: 'ServiceNeeded' as ComponentSortKey,
                     },
+                    // 4. Vendor
                     {
-                      label: 'CoreSerial',
-                      key: 'CoreSerial' as ComponentSortKey,
+                      label: 'Vendor',
+                      key: 'Vendor' as ComponentSortKey,
                     },
-                    { label: 'Notes', key: 'Notes' as ComponentSortKey },
+                    // 5. Work Order
                     {
-                      label: 'NewSerial',
-                      key: 'NewSerial' as ComponentSortKey,
+                      label: 'Work Order',
+                      key: 'WorkOrder' as ComponentSortKey,
                     },
-                    { label: 'Vendor', key: 'Vendor' as ComponentSortKey },
-                    { label: 'Price', key: 'Price' as ComponentSortKey },
+                    // 6. Ordered
                     {
-                      label: 'Billbacks',
-                      key: 'Billbacks' as ComponentSortKey,
-                    },
-                    {
-                      label: 'PONumber',
-                      key: 'PONumber' as ComponentSortKey,
-                    },
-                    {
-                      // “Ordered” header
                       label: 'Ordered',
                       key: 'Ordered' as ComponentSortKey,
                     },
+                    // 7. Received
                     {
-                      // “Received” header
                       label: 'Received',
                       key: 'Received' as ComponentSortKey,
                     },
+                    // 8. Core Returned
                     {
-                      // “Service OK?” header
-                      label: 'Svc OK?',
-                      key:
-                        'ServiceableAcceptable' as ComponentSortKey,
+                      label: 'Core Returned',
+                      key: 'CoreReturned' as ComponentSortKey,
                     },
+                    // 9. Notes
                     {
-                      label: 'MechanicName',
-                      key:
-                        'MechanicName' as ComponentSortKey,
+                      label: 'Notes',
+                      key: 'Notes' as ComponentSortKey,
                     },
+                    // 10. PO Number
                     {
-                      label: 'WorkOrder',
-                      key: 'WorkOrder' as ComponentSortKey,
+                      label: 'PO Number',
+                      key: 'PONumber' as ComponentSortKey,
                     },
+                    // 11. Core Serial
                     {
-                      label: 'DateRequired',
-                      key:
-                        'DateRequired' as ComponentSortKey,
+                      label: 'Core Serial',
+                      key: 'CoreSerial' as ComponentSortKey,
                     },
+                    // 12. New Serial
                     {
-                      label: 'RequestDate',
-                      key:
-                        'RequestDate' as ComponentSortKey,
+                      label: 'New Serial',
+                      key: 'NewSerial' as ComponentSortKey,
                     },
+                    // 13. Mechanic Name
                     {
-                      label: 'TaskNumber',
-                      key:
-                        'TaskNumber' as ComponentSortKey,
+                      label: 'Mechanic Name',
+                      key: 'MechanicName' as ComponentSortKey,
+                    },
+                    // 14. Request Date
+                    {
+                      label: 'Request Date',
+                      key: 'RequestDate' as ComponentSortKey,
+                    },
+                    // 15. Date Required
+                    {
+                      label: 'Date Required',
+                      key: 'DateRequired' as ComponentSortKey,
+                    },
+                    // 16. Task Number
+                    {
+                      label: 'Task Number',
+                      key: 'TaskNumber' as ComponentSortKey,
                     },
                   ].map((col, idx) => (
                     <th
@@ -452,90 +452,83 @@ export default function ComponentsPage() {
               {/* ─── Table Body ───────────────────────────────────────────────────── */}
               <tbody className="bg-white divide-y divide-gray-200">
                 {displayRows.map((row, idx) => {
-                  // 1) Text or boolean (as “Yes”/“No”) for each column in order:
+                  // 1) Derive display values (text or “Yes”/“No”):
                   const partNum =
                     row.PartNumber ?? '—';
                   const desc =
                     row.PartDescription ?? '—';
                   const service =
                     row.ServiceNeeded ?? '—';
-                  const core =
-                    row.CoreSerial ?? '—';
-                  const notes = row.Notes ?? '—';
-                  const neu = row.NewSerial ?? '—';
                   const vendor = row.Vendor ?? '—';
-                  const price =
-                    row.Price != null
-                      ? row.Price.toFixed(2)
-                      : '—';
-                  const bill =
-                    row.Billbacks != null
-                      ? row.Billbacks.toFixed(2)
-                      : '—';
-                  const poNum =
-                    row.PONumber != null
-                      ? row.PONumber
-                      : '—';
+                  const work =
+                    row.WorkOrder ?? '—';
                   const ordText =
                     row.Ordered ? 'Yes' : 'No';
                   const recText =
                     row.Received ? 'Yes' : 'No';
-                  const svcOkText =
-                    row.ServiceableAcceptable
-                      ? 'Yes'
-                      : 'No';
+                  const sentText =
+                    row.CoreReturned ? 'Yes' : 'No';
+                  const notes = row.Notes ?? '—';
+                  const poNum =
+                    row.PONumber != null
+                      ? row.PONumber
+                      : '—';
+                  const core =
+                    row.CoreSerial ?? '—';
+                  const neu = row.NewSerial ?? '—';
                   const mech =
                     row.MechanicName ?? '—';
-                  const work =
-                    row.WorkOrder ?? '—';
-                  const dateReq = row.DateRequired
-                    ? new Date(row.DateRequired).toLocaleDateString()
-                    : '—';
                   const reqDate = row.RequestDate
                     ? new Date(row.RequestDate).toLocaleDateString()
+                    : '—';
+                  const dateReq = row.DateRequired
+                    ? new Date(row.DateRequired).toLocaleDateString()
                     : '—';
                   const task =
                     row.TaskNumber ?? '—';
 
                   // 2) Conditional row color:
                   let rowBgClass = '';
+
                   if (!row.Ordered) {
-                    // never ordered → RED
                     rowBgClass = 'bg-red-100';
                   } else if (
+                    row.ServiceNeeded === "Overhaul Exchange" &&
                     row.Ordered &&
-                    !row.ServiceableAcceptable
+                    row.Received
                   ) {
-                    // ordered but not serviceable → YELLOW
+                    // ordered, received, and specifically Overhaul Exchange
+                    rowBgClass = 'bg-orange-100';
+                  } else if (
+                    row.Ordered &&
+                    !row.Received
+                  ) {
                     rowBgClass = 'bg-yellow-100';
                   } else if (
                     row.Ordered &&
-                    row.ServiceableAcceptable
+                    row.Received
                   ) {
-                    // ordered & serviceable → GREEN
                     rowBgClass = 'bg-green-100';
                   }
 
-                  // 3) Build array in EXACT column order:
+                  // 3) Build array in the NEW column order:
                   const cells = [
-                    partNum,       // PartNumber
-                    desc,          // Description
-                    service,       // ServiceNeeded
-                    core,          // CoreSerial
-                    notes,         // Notes
-                    neu,           // NewSerial
-                    vendor,        // Vendor
-                    price,         // Price
-                    bill,          // Billbacks
-                    poNum,         // PONumber
-                    ordText,       // Ordered (Yes/No)
-                    recText,       // Received (Yes/No)
-                    svcOkText,     // ServiceableAcceptable (Yes/No)
-                    mech,          // MechanicName
-                    work,          // WorkOrder
-                    dateReq,       // DateRequired
-                    reqDate,       // RequestDate
-                    task,          // TaskNumber
+                    partNum,    // 1. Part Number
+                    desc,       // 2. Description
+                    service,    // 3. Service Needed
+                    vendor,     // 4. Vendor
+                    work,       // 5. Work Order
+                    ordText,    // 6. Ordered (Yes/No)
+                    recText,    // 7. Received (Yes/No)
+                    sentText,   // 8. Core Returned (Yes/No)
+                    notes,      // 9. Notes
+                    poNum,      // 10. PO Number
+                    core,       // 11. Core Serial
+                    neu,        // 12. New Serial
+                    mech,       // 13. Mechanic Name
+                    reqDate,    // 14. Request Date
+                    dateReq,    // 15. Date Required
+                    task,       // 16. Task Number
                   ];
 
                   return (
@@ -559,7 +552,7 @@ export default function ComponentsPage() {
                 {loadingMore && (
                   <tr>
                     <td
-                      colSpan={18}
+                      colSpan={16}
                       className="py-4 text-center text-gray-600"
                     >
                       Loading more…
@@ -569,7 +562,7 @@ export default function ComponentsPage() {
 
                 {/* Sentinel for IntersectionObserver: */}
                 <tr>
-                  <td colSpan={18}>
+                  <td colSpan={16}>
                     <div ref={sentinelRef} />
                   </td>
                 </tr>

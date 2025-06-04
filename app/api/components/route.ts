@@ -24,6 +24,7 @@ export const GET = withAuth(async (_request: NextRequest) => {
       PartNumber:           string;
       PartDescription:      string;  // alias for c.Description
       CoreSerial:           string;
+      CoreReturned:         boolean;
       TaskNumber:           string;
       NewSerial:            string;
       Ordered:              boolean;
@@ -52,6 +53,7 @@ export const GET = withAuth(async (_request: NextRequest) => {
         c.NewSerial                     AS NewSerial,
         c.Ordered                       AS Ordered,
         c.Received                      AS Received,
+        c.CoreReturned                  AS CoreReturned,
         c.OrderDate                     AS OrderDate,
         c.DateRequired                  AS DateRequired,
         c.Price                         AS Price,
