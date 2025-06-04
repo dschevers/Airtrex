@@ -36,7 +36,23 @@ export default function LandingPage() {
     checkAuth();
   }, [router]);
 
-  if (loading) return null;
+    if (loading) {
+      return (
+        <div
+          style={{
+            background: '#fff',
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1rem',
+            color: '#555'
+          }}
+        >
+          Loading dashboard…
+        </div>
+      );
+    }
 
   // Forms config
   const forms = [
@@ -50,22 +66,22 @@ export default function LandingPage() {
       status: 'active',
     },
     {
-      id: 'purchase-order',
-      title: 'Purchase Order Form',
-      description: 'Create purchase orders for vendors',
-      icon: '💰',
+      id: 'order-history',
+      title: 'Parts Order History',
+      description: 'View history for all part requests',
+      icon: '📋',
       color: '#009933',
-      path: '/purchase-order',
-      status: 'coming-soon',
+      path: '/orders',
+      status: 'active',
     },
-    {
-      id: 'inventory',
-      title: 'Inventory Management',
-      description: 'Check and update inventory levels',
-      icon: '📊',
-      color: '#cc3300',
-      path: '/inventory',
-      status: 'coming-soon',
+        {
+      id: 'component-history',
+      title: 'Component Order History',
+      description: 'View history for all component requests',
+      icon: '📋',
+      color: '#ea7d12',
+      path: '/components',
+      status: 'active',
     },
   ];
 

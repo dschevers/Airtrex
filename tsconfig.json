@@ -33,7 +33,7 @@
     "lib/csrf-middleware.ts",
     "next-env.d.ts",
     ".next/types/**/*.ts"
-  ],
+, "app/api/po-headers/route.ts"  ],
   "exclude": [
     "node_modules",
     ".next"

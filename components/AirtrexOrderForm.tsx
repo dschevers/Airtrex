@@ -621,6 +621,22 @@ export default function AirtrexOrderForm(): ReactElement {
 
                   {/* Description & Part# */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="block mb-1">Part/Item Number</label>
+                        <input
+                          type="text"
+                          name="partNumber"
+                          value={item.partNumber}
+                          onChange={e => handleChange(e, idx)}
+                          className={`w-full p-2 border ${
+                            rowErrs.partNumber ? 'border-red-500' : 'border-gray-300'
+                          } rounded`}
+                          style={{ color: darkTextColor }}
+                        />
+                        {rowErrs.partNumber && (
+                          <p className="text-red-500 text-xs">{rowErrs.partNumber}</p>
+                        )}
+                      </div>
                     <div>
                       <label className="block mb-1">Description</label>
                       <input
@@ -635,22 +651,6 @@ export default function AirtrexOrderForm(): ReactElement {
                       />
                       {rowErrs.description && (
                         <p className="text-red-500 text-xs">{rowErrs.description}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block mb-1">Part/Item Number</label>
-                      <input
-                        type="text"
-                        name="partNumber"
-                        value={item.partNumber}
-                        onChange={e => handleChange(e, idx)}
-                        className={`w-full p-2 border ${
-                          rowErrs.partNumber ? 'border-red-500' : 'border-gray-300'
-                        } rounded`}
-                        style={{ color: darkTextColor }}
-                      />
-                      {rowErrs.partNumber && (
-                        <p className="text-red-500 text-xs">{rowErrs.partNumber}</p>
                       )}
                     </div>
                   </div>

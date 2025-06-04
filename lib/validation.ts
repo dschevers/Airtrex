@@ -229,20 +229,27 @@ export function sanitizeOrderData(
       })
       .map((itemRaw) => {
         const item = itemRaw as OrderLineItem;
-        const date = new Date(item.requiredByDate as string);
+
+        // only parse if it's a non-empty string
+        let dateField: string | null = null;
+        if (typeof item.requiredByDate === 'string' && item.requiredByDate.trim() !== '') {
+          const parsed = new Date(item.requiredByDate);
+          if (!isNaN(parsed.getTime())) {
+            dateField = parsed.toISOString().split('T')[0];
+          }
+        }
+
         return {
           partNumber: sanitizeInput(item.partNumber as string),
           description: sanitizeInput(item.description as string),
-          taskNumber: sanitizeInput((item.taskNumber as string) || ''),     // Added
+          taskNumber: sanitizeInput((item.taskNumber as string) || ''),
           notes: sanitizeInput((item.notes as string) || ''),
-          requiredByDate: isNaN(date.getTime())
-            ? null
-            : date.toISOString().split('T')[0],
+          requiredByDate: dateField,      // now only a valid “YYYY-MM-DD” or null
           location: sanitizeInput(item.location as string),
           quantity: Number(item.quantity),
           unitOfMeasure: sanitizeInput(item.unitOfMeasure as string),
-          fromStock: Boolean(item.fromStock),                               // Added
-          noAlternates: Boolean(item.noAlternates),                         // Added
+          fromStock: Boolean(item.fromStock),
+          noAlternates: Boolean(item.noAlternates),
         };
       }),
   };

@@ -67,19 +67,34 @@ export const POST = withAuth(
       for (const item of sanitizedData.lineItems) {
         if (!item.description || !item.partNumber || !item.quantity) continue;
 
+        // “raw” comes from sanitizeOrderData(): either a YYYY-MM-DD string or null
+        const raw = item.requiredByDate;
+        let dateRequiredValue: Date | null = null;
+
+        if (typeof raw === 'string' && raw.trim() !== '') {
+          const parsed = new Date(raw);
+          if (!isNaN(parsed.getTime())) {
+            dateRequiredValue = parsed;
+          }
+        }
+        // If raw is null/empty/invalid, dateRequiredValue remains null
+
         const p = pool.request();
         p.input('partNumber',      sql.NVarChar, item.partNumber);
         p.input('partDescription', sql.NVarChar, item.description);
-        p.input('taskNumber',      sql.NVarChar, item.taskNumber);        // Added
+        p.input('taskNumber',      sql.NVarChar, item.taskNumber);
         p.input('quantity',        sql.Int,      item.quantity);
-        p.input('dateRequired',    sql.Date,     item.requiredByDate ?? now);
+
+        // Bind dateRequiredValue (either Date or null)
+        p.input('dateRequired',    sql.DateTime, dateRequiredValue);
+
         p.input('mechKey',         sql.Int,      mechanicId);
-        p.input('orderDate',       sql.Date,     now);
+        p.input('orderDate',       sql.DateTime, now);
         p.input('notes',           sql.NVarChar, item.notes);
         p.input('location',        sql.NVarChar, item.location);
         p.input('unitOfMeasure',   sql.NVarChar, item.unitOfMeasure);
-        p.input('fromStock',       sql.Bit,      item.fromStock);          // Added
-        p.input('noAlternates',    sql.Bit,      item.noAlternates);       // Added
+        p.input('fromStock',       sql.Bit,      item.fromStock);
+        p.input('noAlternates',    sql.Bit,      item.noAlternates);
 
         await p.query(`
           INSERT INTO Parts
@@ -138,18 +153,23 @@ export const GET = withAuth(async (_request: NextRequest) => {
       WorkOrder:      string;
       SubmissionTime: Date;
       RequestDate:    Date;
-      OrderID:        number;
+      OrderID:        number | null;
+      PONumber:       number | null;
+      GroupPO:        number | null;    // ← new
       PartNumber:     string;
       PartDescription:string;
-      TaskNumber:     string;    // Added
+      TaskNumber:     string;
       Quantity:       number;
       DateRequired:   Date;
       OrderDate:      Date;
       Notes:          string;
       UnitOfMeasure:  string;
       Location:       string;
-      FromStock:      boolean;   // Added
-      NoAlternates:   boolean;   // Added
+      Ordered:        boolean;
+      Vendor:         string;
+      Received:       boolean;
+      FromStock:      boolean;
+      NoAlternates:   boolean;
     }>(`
       SELECT
         m.ID            AS MechanicID,
@@ -158,6 +178,8 @@ export const GET = withAuth(async (_request: NextRequest) => {
         m.SubmissionTime,
         m.RequestDate,
         p.OrderID,
+        po.[PONumber]                        AS PONumber,
+        pg.[GroupPO]                         AS GroupPO,         -- ← new
         p.PartNumber,
         p.PartDescription,
         p.TaskNumber,
@@ -165,22 +187,28 @@ export const GET = withAuth(async (_request: NextRequest) => {
         p.DateRequired,
         p.OrderDate,
         p.Notes,
+        p.Ordered,
+        p.Received,
+        p.Vendor,
         p.UnitOfMeasure,
         p.Location,
         p.FromStock,
         p.NoAlternates
-      FROM Mechanic m
-      LEFT JOIN Parts p ON m.ID = p.MechKey
-      ORDER BY m.SubmissionTime DESC, p.OrderID DESC
+      FROM dbo.Mechanic AS m
+      LEFT JOIN dbo.Parts AS p
+        ON m.ID = p.MechKey
+      LEFT JOIN [dbo].[Purchase Orders] AS po
+        ON po.[POID] = p.[POKey]
+      LEFT JOIN dbo.PONumberGroups AS pg
+        ON po.[PONumber] = pg.[IndividualPO]     -- ← join PONumberGroups
+      ORDER BY
+        m.RequestDate DESC,
+        p.OrderID DESC
     `);
 
     return NextResponse.json(result.recordset);
-  } catch (err) {
-    if (err instanceof Error) {
-      console.error('Error fetching orders:', err.message);
-    } else {
-      console.error('Error fetching orders (unknown):', err);
-    }
+  } catch (err: any) {
+    console.error('Error fetching orders:', err.message || err);
     return NextResponse.json(
       { error: 'Error fetching orders' },
       { status: 500 }
