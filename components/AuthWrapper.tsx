@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, ReactNode, ReactElement } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import QuickRefDrawer from './QuickRefDrawer';
 
 interface AuthWrapperProps {
@@ -11,15 +11,14 @@ interface AuthWrapperProps {
 export default function AuthWrapper({
   children,
 }: AuthWrapperProps): ReactElement {
+  const pathname = usePathname();
   const [csrfToken, setCsrfToken] = useState<string>('');
   const router = useRouter();
 
-  // Your brand colors:
-  const airtrexBlue = '#0033cc';
-  const airtrexGreen = '#009933';
-
-  // Fetch CSRF token when component mounts
+  // Always call this hook, but skip fetching when on /login
   useEffect(() => {
+    if (pathname === '/login') return;
+
     fetch('/api/auth/csrf', { credentials: 'include' })
       .then((res) => {
         if (!res.ok) throw new Error('CSRF fetch failed');
@@ -27,9 +26,13 @@ export default function AuthWrapper({
       })
       .then((data) => setCsrfToken(data.csrfToken))
       .catch((err) => console.error('Failed to fetch CSRF token:', err));
-  }, []);
+  }, [pathname]);
 
-  // Logout handler
+  // If we're on /login, render children only (no header/buttons)
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
+
   const handleLogout = async (): Promise<void> => {
     try {
       const res = await fetch('/api/auth/logout', {
@@ -54,22 +57,15 @@ export default function AuthWrapper({
     router.push('/dashboard');
   };
 
+  const airtrexBlue = '#0033cc';
+  const airtrexGreen = '#009933';
+
   return (
     <div>
-      {/*
-        Header is relative so we can absolutely position Home in its center.
-        We fix header height to h-12 (48px) so buttons of height h-8 fit with 8px vertical padding.
-      */}
       <header className="relative bg-gray-100 h-12 flex items-center px-4">
-        {/*
-          Left and right items live in a flex that stretches full width.
-          QuickRefDrawer on left; Log Out on right.
-        */}
         <div className="flex justify-between items-center w-full">
-          {/* Left: QuickRefDrawer trigger (no changes here) */}
           <QuickRefDrawer />
 
-          {/* Right: Logout button—replaced `bg-blue-600` with inline style={ { backgroundColor: airtrexBlue } } */}
           <button onClick={handleLogout} className="logout">
             Logout
           </button>
@@ -89,10 +85,6 @@ export default function AuthWrapper({
           `}</style>
         </div>
 
-        {/*
-          Home button absolutely centered: top-1/2 / left-1/2, then translate -50% to align perfectly.
-          We give it h-8 w-8 so it sits vertically centered inside the h-12 header.
-        */}
         <button
           onClick={goDashboard}
           aria-label="Home"
