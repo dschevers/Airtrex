@@ -27,25 +27,22 @@ export default function WorkOrderDrawer() {
     setLoading(true);
     setError(null);
 
-    // Build the URL: add ?active=1 if filterActive is true
-    const url = filterActive
-      ? "/api/workorders?active=1"
-      : "/api/workorders";
-
-    fetch(url)
-      .then(async (res) => {
+    async function fetchRows() {
+      try {
+        const url = filterActive ? '/api/workorders?active=1' : '/api/workorders';
+        const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data: WorkOrderRow[]) => {
+        const data = (await res.json()) as WorkOrderRow[];
         setRows(data);
-        setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error(err);
-        setError("Failed to load work-orders");
+        setError('Failed to load work-orders');
+      } finally {
         setLoading(false);
-      });
+      }
+    }
+
+    fetchRows();
   }, [open, filterActive]);
 
   return (
