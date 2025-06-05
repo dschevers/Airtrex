@@ -48,7 +48,7 @@ export default function WorkOrderDrawer() {
   return (
     <>
           <button onClick={() => setOpen(true)} className="workorders">
-            Work Orders
+            Work Order Guide
           </button>
 
           <style jsx global>{`

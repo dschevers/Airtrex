@@ -333,6 +333,7 @@ export default function AirtrexOrderForm(): ReactElement {
     
 
     // 1) client-side validation
+    setShowConfirmSubmit(false);
     if (!validateForm()) {
       setSubmissionError('Please fix the errors below.');
       return;
@@ -379,7 +380,6 @@ export default function AirtrexOrderForm(): ReactElement {
       }
 
       // 3) on success, close the confirm modal
-      setShowConfirmSubmit(false);
       setSubmitSuccess(true);
 
       await res.json();
